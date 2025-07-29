@@ -36,6 +36,12 @@ var extensionToLanguage = map[string]string{
 	".ts":    "TypeScript",
 }
 
+const (
+	metadataFile = "README_EN.md"
+	descStart    = "<!-- description:start -->"
+	descEnd      = "<!-- description:end -->"
+)
+
 type Metadata struct {
 	Difficulty string   `yaml:"difficulty"`
 	Tags       []string `yaml:"tags"`
@@ -46,32 +52,32 @@ type Processor struct {
 	writer *DataWriter
 }
 
-func (pr *Processor) Process() error {
-	return filepath.WalkDir(pr.root, pr.walkDir)
+func (proc *Processor) Process() error {
+	return filepath.WalkDir(proc.root, proc.walkDir)
 }
 
-func (pr *Processor) walkDir(path string, d fs.DirEntry, err error) error {
+func (proc *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 	if err != nil {
 		return err
 	}
 
-	if !d.IsDir() && path != filepath.Join(pr.root, "README_EN.md") && filepath.Base(path) == "README_EN.md" {
-		pr.processDir(path)
+	if !d.IsDir() && path != filepath.Join(proc.root, metadataFile) && filepath.Base(path) == metadataFile {
+		proc.processDir(path)
 	}
 
 	return nil
 }
 
-func (pr *Processor) processDir(path string) {
+func (proc *Processor) processDir(path string) {
 	dir := filepath.Dir(path)
 
-	id, title, err := pr.parseDir(dir)
+	id, title, err := proc.parseDir(dir)
 	if err != nil {
 		log.Printf("Fail to parse id and title: %s", path)
 		return
 	}
 
-	metadata, description, err := pr.parseReadme(path)
+	metadata, description, err := proc.parseReadme(path)
 	if err != nil {
 		log.Printf("Error reading README %s: %v", path, err)
 		return
@@ -113,13 +119,13 @@ func (pr *Processor) processDir(path string) {
 			Solution:    string(content),
 		}
 
-		if err = (*pr.writer).WriteRecord(record); err != nil {
+		if err = (*proc.writer).WriteRecord(record); err != nil {
 			log.Printf("Error writing record: %v", err)
 		}
 	}
 }
 
-func (pr *Processor) parseDir(path string) (id int64, title string, err error) {
+func (proc *Processor) parseDir(path string) (id int64, title string, err error) {
 	base := filepath.Base(path)
 
 	titleRegex := regexp.MustCompile(`^(\d+)\.(.+)$`)
@@ -133,7 +139,7 @@ func (pr *Processor) parseDir(path string) (id int64, title string, err error) {
 	return id, title, err
 }
 
-func (pr *Processor) parseReadme(path string) (metadata Metadata, description string, err error) {
+func (proc *Processor) parseReadme(path string) (metadata Metadata, description string, err error) {
 	readme, err := os.ReadFile(path)
 	if err != nil {
 		log.Printf("Error reading README %s: %v", path, err)
@@ -173,10 +179,6 @@ func (pr *Processor) parseReadme(path string) (metadata Metadata, description st
 	if err != nil {
 		return metadata, "", fmt.Errorf("failed to parse metadata: %w", err)
 	}
-
-	// Extract description between <!-- description:start --> and <!-- description:end -->
-	const descStart = "<!-- description:start -->"
-	const descEnd = "<!-- description:end -->"
 
 	descStartIndex := -1
 	descEndIndex := -1

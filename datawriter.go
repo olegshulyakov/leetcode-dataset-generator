@@ -43,7 +43,9 @@ func (w *ParquetWriter) WriteRecord(r Record) error {
 }
 
 func (w *ParquetWriter) Stop() {
-	_ = w.pw.WriteStop()
+	if err := w.pw.WriteStop(); err != nil {
+        log.Printf("Error during parquet writer stop: %v", err)
+    }
 }
 
 type CSVWriter struct {
@@ -52,7 +54,7 @@ type CSVWriter struct {
 
 func (w *CSVWriter) WriteRecord(r Record) error {
 	return w.cw.Write([]string{
-		strconv.Itoa(int(rune(r.ID))),
+		strconv.FormatInt(r.ID, 10),
 		r.Title,
 		r.Difficulty,
 		r.Description,
@@ -67,12 +69,12 @@ func (w *CSVWriter) Stop() {
 }
 
 type JSONWriter struct {
-	file *os.File
+	file    *os.File
+	encoder *json.Encoder
 }
 
 func (w *JSONWriter) WriteRecord(r Record) error {
-	encoder := json.NewEncoder(w.file)
-	return encoder.Encode(r)
+	return w.encoder.Encode(r)
 }
 
 func (w *JSONWriter) Stop() {}
@@ -81,7 +83,8 @@ func NewDataWriter(format string, f *os.File) (*DataWriter, error) {
 	var out DataWriter
 	switch strings.ToLower(format) {
 	case PARQUET:
-		pw, err := writer.NewParquetWriterFromWriter(f, new(Record), 4)
+		const parallelNumber = 4
+		pw, err := writer.NewParquetWriterFromWriter(f, new(Record), parallelNumber)
 		if err != nil {
 			log.Printf("Failed to create parquet writer: %v", err)
 			return nil, err
@@ -95,7 +98,10 @@ func NewDataWriter(format string, f *os.File) (*DataWriter, error) {
 		}
 		out = &CSVWriter{cw: cw}
 	case JSON:
-		out = &JSONWriter{file: f}
+		out = &JSONWriter{
+			file:    f,
+			encoder: json.NewEncoder(f),
+		}
 	default:
 		log.Printf("Unsupported format: %s", format)
 		return nil, errors.New("unsupported format")

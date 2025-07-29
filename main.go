@@ -24,11 +24,11 @@ func main() {
 	defer f.Close()
 
 	writer, err := NewDataWriter(*outputFormat, f)
-	defer (*writer).Stop()
 	if err != nil {
 		log.Printf("Failed to create writer: %v", err)
 		return
 	}
+	defer (*writer).Stop()
 
 	processor := &Processor{
 		root:   filepath.Join(*repoPath, "solution"),
