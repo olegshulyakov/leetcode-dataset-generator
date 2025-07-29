@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io/fs"
 	"log"
 	"os"
@@ -59,27 +60,18 @@ func (pr *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 
 func (pr *Processor) processDir(path string) {
 	dir := filepath.Dir(path)
-	base := filepath.Base(dir)
-	parts := strings.Split(base, ".")
-	if len(parts) != 2 {
-		log.Printf("Fail to parse id and title: %s", base)
-		return
-	}
 
-	idStr, title := parts[0], parts[1]
-	id, err := strconv.ParseInt(idStr, 10, 0)
+	id, title, err := pr.parseDir(dir)
 	if err != nil {
-		log.Printf("Fail to parse id: %v", id)
+		log.Printf("Fail to parse id and title: %s", filepath.Base(dir))
 		return
 	}
 
-	readme, err := os.ReadFile(path)
+	difficulty, tags, description, err := pr.parseReadme(path)
 	if err != nil {
 		log.Printf("Error reading README %s: %v", path, err)
 		return
 	}
-
-	difficulty, tags, description := pr.parseReadme(string(readme))
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
@@ -122,7 +114,29 @@ func (pr *Processor) processDir(path string) {
 	}
 }
 
-func (pr *Processor) parseReadme(content string) (difficulty string, tags []string, description string) {
+func (pr *Processor) parseDir(path string) (id int64, title string, err error) {
+	base := filepath.Base(path)
+
+	titleRegex := regexp.MustCompile(`^(\d+)\.(.+)$`)
+	if matches := titleRegex.FindStringSubmatch(base); matches != nil {
+		title = matches[2]
+		idStr := matches[1]
+		id, err = strconv.ParseInt(idStr, 10, 0)
+	} else {
+		err = errors.New("title does not match")
+	}
+	return id, title, err
+}
+
+func (pr *Processor) parseReadme(path string) (difficulty string, tags []string, description string, err error) {
+	readme, err := os.ReadFile(path)
+	if err != nil {
+		log.Printf("Error reading README %s: %v", path, err)
+		return difficulty, tags, description, err
+	}
+
+	content := string(readme)
+
 	lines := strings.Split(content, "\n")
 	difficultyRegex := regexp.MustCompile(`!\[(Easy|Medium|Hard)\]`)
 	tagRegex := regexp.MustCompile(`!\[([^\]]+)\]`)
@@ -159,5 +173,5 @@ func (pr *Processor) parseReadme(content string) (difficulty string, tags []stri
 	}
 
 	description = strings.TrimSpace(strings.Join(descLines, "\n"))
-	return difficulty, tags, description
+	return difficulty, tags, description, err
 }

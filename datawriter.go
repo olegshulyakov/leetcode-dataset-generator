@@ -20,7 +20,7 @@ const (
 )
 
 type Record struct {
-	ID          int64      `parquet:"name=id, type=INT64"`
+	ID          int64    `parquet:"name=id, type=INT64"`
 	Title       string   `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"`
 	Difficulty  string   `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"`
 	Description string   `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"`
