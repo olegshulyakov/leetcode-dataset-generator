@@ -38,3 +38,8 @@ jobs:
       - name: Generate dataset
         run: |
           ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions
+
+      - name: Upload to Hugging Face
+        run: |
+          pip install huggingface_hub[cli]
+          huggingface-cli upload ${{ secrets.HF_REPO_ID }} ./leetcode-solutions.parquet --token ${{ secrets.HF_TOKEN }} --repo-type=dataset
