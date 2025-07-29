@@ -216,3 +216,6 @@ $RECYCLE.BIN/
 *.parquet
 *.json
 *.csv
+
+# Binary
+leetcode-dataset
