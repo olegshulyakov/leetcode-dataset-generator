@@ -34,12 +34,12 @@ var extensionToLanguage = map[string]string{
 }
 
 type Processor struct {
+	root string
 	writer *DataWriter
 }
 
 func (pr *Processor) Process() error {
-	root := filepath.Join(*repoPath, "solution")
-	return filepath.WalkDir(root, pr.walkDir)
+	return filepath.WalkDir(pr.root, pr.walkDir)
 }
 
 func (pr *Processor) walkDir(path string, d fs.DirEntry, err error) error {
@@ -47,11 +47,7 @@ func (pr *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 		return err
 	}
 
-	if d.IsDir() {
-		return nil
-	}
-
-	if filepath.Base(path) == "README_EN.md" {
+	if !d.IsDir() && path != filepath.Join(pr.root, "README_EN.md") && filepath.Base(path) == "README_EN.md" {
 		pr.processDir(path)
 	}
 
@@ -63,7 +59,7 @@ func (pr *Processor) processDir(path string) {
 
 	id, title, err := pr.parseDir(dir)
 	if err != nil {
-		log.Printf("Fail to parse id and title: %s", filepath.Base(dir))
+		log.Printf("Fail to parse id and title: %s", path)
 		return
 	}
 

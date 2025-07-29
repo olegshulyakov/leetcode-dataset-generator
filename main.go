@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -30,6 +31,7 @@ func main() {
 	}
 
 	processor := &Processor{
+		root: filepath.Join(*repoPath, "solution"),
 		writer: writer,
 	}
 	err = processor.Process()
