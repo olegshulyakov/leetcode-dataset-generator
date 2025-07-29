@@ -20,13 +20,13 @@ const (
 )
 
 type Record struct {
-	ID          int64    `parquet:"name=id, type=INT64"`
-	Title       string   `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Difficulty  string   `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Description string   `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Tags        []string `parquet:"name=tags, type=LIST, valuetype=BYTE_ARRAY, convertedtype=UTF8"`
-	Language    string   `parquet:"name=language, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Solution    string   `parquet:"name=solution, type=BYTE_ARRAY, convertedtype=UTF8"`
+	ID          int64  `parquet:"name=id, type=INT64"`
+	Title       string `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Difficulty  string `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Description string `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Tags        string `parquet:"name=tags, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Language    string `parquet:"name=language, type=BYTE_ARRAY, convertedtype=UTF8"`
+	Solution    string `parquet:"name=solution, type=BYTE_ARRAY, convertedtype=UTF8"`
 }
 
 type DataWriter interface {
@@ -56,7 +56,7 @@ func (w *CSVWriter) WriteRecord(r Record) error {
 		r.Title,
 		r.Difficulty,
 		r.Description,
-		strings.Join(r.Tags, ", "),
+		r.Tags,
 		r.Language,
 		r.Solution,
 	})

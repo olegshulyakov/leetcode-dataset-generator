@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 )
 
 var extensionToLanguage = map[string]string{
@@ -31,6 +34,11 @@ var extensionToLanguage = map[string]string{
 	".sql":   "SQL",
 	".swift": "Swift",
 	".ts":    "TypeScript",
+}
+
+type Metadata struct {
+	Difficulty string   `yaml:"difficulty"`
+	Tags       []string `yaml:"tags"`
 }
 
 type Processor struct {
@@ -63,7 +71,7 @@ func (pr *Processor) processDir(path string) {
 		return
 	}
 
-	difficulty, tags, description, err := pr.parseReadme(path)
+	metadata, description, err := pr.parseReadme(path)
 	if err != nil {
 		log.Printf("Error reading README %s: %v", path, err)
 		return
@@ -88,7 +96,8 @@ func (pr *Processor) processDir(path string) {
 			continue
 		}
 
-		content, err := os.ReadFile(filepath.Join(dir, fileName))
+		var content []byte
+		content, err = os.ReadFile(filepath.Join(dir, fileName))
 		if err != nil {
 			log.Printf("Error reading solution file %s: %v", fileName, err)
 			continue
@@ -97,9 +106,9 @@ func (pr *Processor) processDir(path string) {
 		record := Record{
 			ID:          id,
 			Title:       title,
-			Difficulty:  difficulty,
+			Difficulty:  metadata.Difficulty,
 			Description: description,
-			Tags:        tags,
+			Tags:        strings.Join(metadata.Tags, "; "),
 			Language:    lang,
 			Solution:    string(content),
 		}
@@ -124,44 +133,71 @@ func (pr *Processor) parseDir(path string) (id int64, title string, err error) {
 	return id, title, err
 }
 
-func (pr *Processor) parseReadme(path string) (difficulty string, tags []string, description string, err error) {
+func (pr *Processor) parseReadme(path string) (metadata Metadata, description string, err error) {
 	readme, err := os.ReadFile(path)
 	if err != nil {
 		log.Printf("Error reading README %s: %v", path, err)
-		return difficulty, tags, description, err
+		return metadata, description, err
 	}
 
 	content := string(readme)
 
+	// Split the markdown into lines
 	lines := strings.Split(content, "\n")
-	difficultyRegex := regexp.MustCompile(`^difficulty: (\w+)$`)
 
-	inDescription := false
-	descLines := []string{}
+	// Find the end of the YAML frontmatter
+	var yamlLines []string
+	inYaml := false
+	started := false
+	yamlEndIndex := 0
 
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
+	for i, line := range lines {
+		if line == "---" {
+			if !started {
+				inYaml = true
+				started = true
+				continue
+			}
 
-		if matches := difficultyRegex.FindStringSubmatch(line); matches != nil {
-			difficulty = matches[1]
-			continue
-		}
-
-		if trimmed == "<!-- description:start -->" {
-			inDescription = true
-			continue
-		}
-		if trimmed == "<!-- description:end -->" {
+			yamlEndIndex = i
 			break
 		}
-
-		if !inDescription {
-			continue
+		if inYaml {
+			yamlLines = append(yamlLines, line)
 		}
-
-		descLines = append(descLines, line)
 	}
 
-	description = strings.TrimSpace(strings.Join(descLines, "\n"))
-	return difficulty, tags, description, err
+	// Parse the metadata
+	yamlContent := strings.Join(yamlLines, "\n")
+	err = yaml.Unmarshal([]byte(yamlContent), &metadata)
+	if err != nil {
+		return metadata, "", fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	// Extract description between <!-- description:start --> and <!-- description:end -->
+	const descStart = "<!-- description:start -->"
+	const descEnd = "<!-- description:end -->"
+
+	descStartIndex := -1
+	descEndIndex := -1
+
+	for i, line := range lines[yamlEndIndex+1:] {
+		if strings.Contains(line, descStart) {
+			descStartIndex = yamlEndIndex + 1 + i
+		}
+		if strings.Contains(line, descEnd) {
+			descEndIndex = yamlEndIndex + 1 + i
+			break
+		}
+	}
+
+	if descStartIndex == -1 || descEndIndex == -1 {
+		return metadata, "", errors.New("description markers not found")
+	}
+
+	descriptionLines := lines[descStartIndex+1 : descEndIndex]
+	description = strings.Join(descriptionLines, "\n")
+	description = strings.TrimSpace(description)
+
+	return metadata, description, nil
 }

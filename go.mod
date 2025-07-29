@@ -2,7 +2,10 @@ module github.com/olegshulyakov/leetcode-dataset-generator
 
 go 1.18
 
-require github.com/xitongsys/parquet-go v1.6.2
+require (
+	github.com/xitongsys/parquet-go v1.6.2
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
+)
 
 require (
 	github.com/apache/arrow/go/arrow v0.0.0-20200730104253-651201b0f516 // indirect
