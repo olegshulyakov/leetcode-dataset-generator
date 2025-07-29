@@ -1,0 +1,39 @@
+name: Generate and Upload LeetCode Dataset
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Runs at 00:00 UTC every Sunday
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  generate-dataset:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout generator repository
+        uses: actions/checkout@v4
+        with:
+          repository: olegshulyakov/leetcode-dataset-generator
+          path: generator
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "stable"
+
+      - name: Build Go application
+        run: |
+          cd generator
+          go build -o leetcode-dataset
+
+      - name: Checkout LeetCode repository
+        uses: actions/checkout@v4
+        with:
+          repository: doocs/leetcode
+          path: leetcode-repo
+
+      - name: Generate dataset
+        run: |
+          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions
