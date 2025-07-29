@@ -48,16 +48,16 @@ type Metadata struct {
 }
 
 type Processor struct {
-	root     string
-	writer   *DataWriter
-	dirCount int
+	root      string
+	writer    *DataWriter
+	processed int
+	failed    int
 }
 
 func (proc *Processor) Process() error {
-	defer func() {
-		log.Printf("Processed %d directories...", proc.dirCount)
-	}()
-	return filepath.WalkDir(proc.root, proc.walkDir)
+	err := filepath.WalkDir(proc.root, proc.walkDir)
+	log.Printf("Processing complete. Processed: %d, Failed: %d", proc.processed, proc.failed)
+	return err
 }
 
 func (proc *Processor) walkDir(path string, d fs.DirEntry, err error) error {
@@ -66,48 +66,51 @@ func (proc *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 	}
 
 	if !d.IsDir() && path != filepath.Join(proc.root, metadataFile) && filepath.Base(path) == metadataFile {
-		err = proc.processDir(path)
+		dir := filepath.Dir(path)
+		err = proc.processDir(dir)
 		if err != nil {
-			log.Printf("Error processing %s: %v", path, err)
+			proc.failed++
+			log.Printf("Error processing %s: %v", filepath.Base(dir), err)
 		}
 
-		proc.dirCount++
-		if proc.dirCount%100 == 0 {
-			log.Printf("Processed %d directories...", proc.dirCount)
+		proc.processed++
+		if proc.processed%100 == 0 {
+			log.Printf("Processed %d directories...", proc.processed)
 		}
 	}
 
 	return nil
 }
 
-func (proc *Processor) processDir(path string) (err error) {
-	dir := filepath.Dir(path)
-
-	id, title, err := proc.parseDir(dir)
+func (proc *Processor) processDir(dir string) (err error) {
+	dirTitle := filepath.Base(dir)
+	id, title, err := proc.parseDir(dirTitle)
 	if err != nil {
 		return err
 	}
 
-	metadata, description, err := proc.parseReadme(path)
+	metadata, description, err := proc.parseMetadata(dir)
 	if err != nil {
 		return err
 	}
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		return fmt.Errorf("error reading directory %s: %w", dir, err)
+		return fmt.Errorf("error reading directory: %w", err)
 	}
 
+	solutionsFound := 0
 	for _, file := range files {
 		if file.IsDir() || !strings.HasPrefix(file.Name(), "Solution.") {
 			continue
 		}
 
+		solutionsFound++
 		fileName := file.Name()
 		ext := filepath.Ext(fileName)
 		lang, ok := extensionToLanguage[ext]
 		if !ok {
-			log.Printf("Unknown language for solution file %s/%s: %s", dir, fileName, ext)
+			log.Printf("Unknown language for solution file %s/%s: %s", dirTitle, fileName, ext)
 			continue
 		}
 
@@ -132,27 +135,30 @@ func (proc *Processor) processDir(path string) (err error) {
 			log.Printf("Error writing record: %v", err)
 		}
 	}
+
+	if solutionsFound == 0 {
+		return errors.New("no solution files found")
+	}
+
 	return nil
 }
 
-func (proc *Processor) parseDir(path string) (id int64, title string, err error) {
-	base := filepath.Base(path)
-
+func (proc *Processor) parseDir(dirTitle string) (id int64, title string, err error) {
 	titleRegex := regexp.MustCompile(`^(\d+)\.(.+)$`)
-	if matches := titleRegex.FindStringSubmatch(base); matches != nil {
+	if matches := titleRegex.FindStringSubmatch(dirTitle); matches != nil {
 		title = matches[2]
 		idStr := matches[1]
 		id, err = strconv.ParseInt(idStr, 10, 0)
 	} else {
-		err = fmt.Errorf("title does not match: %s", base)
+		err = fmt.Errorf("title does not match: %s", dirTitle)
 	}
 	return id, title, err
 }
 
-func (proc *Processor) parseReadme(path string) (metadata Metadata, description string, err error) {
-	readme, err := os.ReadFile(path)
+func (proc *Processor) parseMetadata(dir string) (metadata Metadata, description string, err error) {
+	readme, err := os.ReadFile(filepath.Join(dir, metadataFile))
 	if err != nil {
-		return metadata, description, fmt.Errorf("failed to read README %s: %w", path, err)
+		return metadata, description, fmt.Errorf("failed to read metadata: %w", err)
 	}
 
 	content := string(readme)
