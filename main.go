@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -16,6 +18,9 @@ var (
 
 func main() {
 	flag.Parse()
+	if err := validateFlags(); err != nil {
+		log.Fatalf("Invalid arguments: %v", err)
+	}
 
 	f, err := outputFile()
 	if err != nil {
@@ -38,6 +43,28 @@ func main() {
 	if err != nil {
 		log.Printf("Error walking directory: %v", err)
 	}
+}
+
+func validateFlags() error {
+	if *repoPath == "" {
+		return errors.New("repository path cannot be empty")
+	}
+
+	if *outputName == "" {
+		return errors.New("output name cannot be empty")
+	}
+
+	validFormats := map[string]bool{
+		PARQUET: true,
+		CSV:     true,
+		JSON:    true,
+	}
+
+	if !validFormats[strings.ToLower(*outputFormat)] {
+		return fmt.Errorf("unsupported format: %s", *outputFormat)
+	}
+
+	return nil
 }
 
 func outputFile() (*os.File, error) {

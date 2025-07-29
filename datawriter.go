@@ -17,16 +17,18 @@ const (
 	PARQUET = "parquet"
 	CSV     = "csv"
 	JSON    = "json"
+
+	defaultParallelNumber = 4
 )
 
 type Record struct {
-	ID          int64  `parquet:"name=id, type=INT64"`
-	Title       string `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Difficulty  string `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Description string `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Tags        string `parquet:"name=tags, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Language    string `parquet:"name=language, type=BYTE_ARRAY, convertedtype=UTF8"`
-	Solution    string `parquet:"name=solution, type=BYTE_ARRAY, convertedtype=UTF8"`
+	ID          int64  `parquet:"name=id, type=INT64"                                   json:"id"`
+	Title       string `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"       json:"title"`
+	Difficulty  string `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"  json:"difficulty"`
+	Description string `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8" json:"description"`
+	Tags        string `parquet:"name=tags, type=BYTE_ARRAY, convertedtype=UTF8"        json:"tags"`
+	Language    string `parquet:"name=language, type=BYTE_ARRAY, convertedtype=UTF8"    json:"language"`
+	Solution    string `parquet:"name=solution, type=BYTE_ARRAY, convertedtype=UTF8"    json:"solution"`
 }
 
 type DataWriter interface {
@@ -44,8 +46,8 @@ func (w *ParquetWriter) WriteRecord(r Record) error {
 
 func (w *ParquetWriter) Stop() {
 	if err := w.pw.WriteStop(); err != nil {
-        log.Printf("Error during parquet writer stop: %v", err)
-    }
+		log.Printf("Error during parquet writer stop: %v", err)
+	}
 }
 
 type CSVWriter struct {
@@ -83,8 +85,7 @@ func NewDataWriter(format string, f *os.File) (*DataWriter, error) {
 	var out DataWriter
 	switch strings.ToLower(format) {
 	case PARQUET:
-		const parallelNumber = 4
-		pw, err := writer.NewParquetWriterFromWriter(f, new(Record), parallelNumber)
+		pw, err := writer.NewParquetWriterFromWriter(f, new(Record), defaultParallelNumber)
 		if err != nil {
 			log.Printf("Failed to create parquet writer: %v", err)
 			return nil, err

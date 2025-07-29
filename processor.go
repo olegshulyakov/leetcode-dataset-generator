@@ -48,11 +48,15 @@ type Metadata struct {
 }
 
 type Processor struct {
-	root   string
-	writer *DataWriter
+	root     string
+	writer   *DataWriter
+	dirCount int
 }
 
 func (proc *Processor) Process() error {
+	defer func() {
+		log.Printf("Processed %d directories...", proc.dirCount)
+	}()
 	return filepath.WalkDir(proc.root, proc.walkDir)
 }
 
@@ -62,31 +66,36 @@ func (proc *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 	}
 
 	if !d.IsDir() && path != filepath.Join(proc.root, metadataFile) && filepath.Base(path) == metadataFile {
-		proc.processDir(path)
+		err = proc.processDir(path)
+		if err != nil {
+			log.Printf("Error processing %s: %v", path, err)
+		}
+
+		proc.dirCount++
+		if proc.dirCount%100 == 0 {
+			log.Printf("Processed %d directories...", proc.dirCount)
+		}
 	}
 
 	return nil
 }
 
-func (proc *Processor) processDir(path string) {
+func (proc *Processor) processDir(path string) (err error) {
 	dir := filepath.Dir(path)
 
 	id, title, err := proc.parseDir(dir)
 	if err != nil {
-		log.Printf("Fail to parse id and title: %s", path)
-		return
+		return err
 	}
 
 	metadata, description, err := proc.parseReadme(path)
 	if err != nil {
-		log.Printf("Error reading README %s: %v", path, err)
-		return
+		return err
 	}
 
 	files, err := os.ReadDir(dir)
 	if err != nil {
-		log.Printf("Error reading directory %s: %v", dir, err)
-		return
+		return fmt.Errorf("error reading directory %s: %w", dir, err)
 	}
 
 	for _, file := range files {
@@ -123,6 +132,7 @@ func (proc *Processor) processDir(path string) {
 			log.Printf("Error writing record: %v", err)
 		}
 	}
+	return nil
 }
 
 func (proc *Processor) parseDir(path string) (id int64, title string, err error) {
@@ -134,7 +144,7 @@ func (proc *Processor) parseDir(path string) (id int64, title string, err error)
 		idStr := matches[1]
 		id, err = strconv.ParseInt(idStr, 10, 0)
 	} else {
-		err = errors.New("title does not match")
+		err = fmt.Errorf("title does not match: %s", base)
 	}
 	return id, title, err
 }
@@ -142,8 +152,7 @@ func (proc *Processor) parseDir(path string) (id int64, title string, err error)
 func (proc *Processor) parseReadme(path string) (metadata Metadata, description string, err error) {
 	readme, err := os.ReadFile(path)
 	if err != nil {
-		log.Printf("Error reading README %s: %v", path, err)
-		return metadata, description, err
+		return metadata, description, fmt.Errorf("failed to read README %s: %w", path, err)
 	}
 
 	content := string(readme)
