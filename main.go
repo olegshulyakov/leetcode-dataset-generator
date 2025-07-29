@@ -4,11 +4,12 @@ import (
 	"flag"
 	"log"
 	"os"
+	"strings"
 )
 
 var (
 	repoPath     = flag.String("repo", ".", "Path to leetcode repository")
-	outputFormat = flag.String("convert", "parquet", "Output format: parquet, csv, or json")
+	outputFormat = flag.String("convert", PARQUET, "Output format: parquet, csv, or json")
 	outputName   = flag.String("output", "leetcode-solutions", "Base output filename")
 )
 
@@ -21,7 +22,7 @@ func main() {
 	}
 	defer f.Close()
 
-	writer, err := getDataWriter(*outputFormat, f)
+	writer, err := NewDataWriter(*outputFormat, f)
 	defer (*writer).Stop()
 	if err != nil {
 		log.Printf("Failed to create writer: %v", err)
@@ -38,14 +39,14 @@ func main() {
 }
 
 func outputFile() (*os.File, error) {
-	extension := "parquet"
-	switch *outputFormat {
-	case "csv":
-		extension = "csv"
-	case "json":
-		extension = "json"
-	case "parquet":
-		extension = "parquet"
+	extension := PARQUET
+	switch strings.ToLower(*outputFormat) {
+	case CSV:
+		extension = CSV
+	case JSON:
+		extension = JSON
+	case PARQUET:
+		extension = PARQUET
 	default:
 		log.Fatalf("Unsupported format: %s", *outputFormat)
 	}

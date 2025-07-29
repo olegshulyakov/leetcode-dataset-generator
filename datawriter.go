@@ -6,13 +6,21 @@ import (
 	"errors"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/xitongsys/parquet-go/writer"
 )
 
+// File extentions.
+const (
+	PARQUET = "parquet"
+	CSV     = "csv"
+	JSON    = "json"
+)
+
 type Record struct {
-	ID          string   `parquet:"name=id, type=BYTE_ARRAY, convertedtype=UTF8"`
+	ID          int64      `parquet:"name=id, type=INT64"`
 	Title       string   `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"`
 	Difficulty  string   `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"`
 	Description string   `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"`
@@ -44,7 +52,7 @@ type CSVWriter struct {
 
 func (w *CSVWriter) WriteRecord(r Record) error {
 	return w.cw.Write([]string{
-		r.ID,
+		strconv.Itoa(int(rune(r.ID))),
 		r.Title,
 		r.Difficulty,
 		r.Description,
@@ -69,24 +77,24 @@ func (w *JSONWriter) WriteRecord(r Record) error {
 
 func (w *JSONWriter) Stop() {}
 
-func getDataWriter(format string, f *os.File) (*DataWriter, error) {
+func NewDataWriter(format string, f *os.File) (*DataWriter, error) {
 	var out DataWriter
-	switch format {
-	case "parquet":
+	switch strings.ToLower(format) {
+	case PARQUET:
 		pw, err := writer.NewParquetWriterFromWriter(f, new(Record), 4)
 		if err != nil {
 			log.Printf("Failed to create parquet writer: %v", err)
 			return nil, err
 		}
 		out = &ParquetWriter{pw: pw}
-	case "csv":
+	case CSV:
 		cw := csv.NewWriter(f)
 		if err := cw.Write([]string{"id", "title", "difficulty", "description", "tags", "language", "solution"}); err != nil {
 			log.Printf("Failed to write CSV header: %v", err)
 			return nil, err
 		}
 		out = &CSVWriter{cw: cw}
-	case "json":
+	case JSON:
 		out = &JSONWriter{file: f}
 	default:
 		log.Printf("Unsupported format: %s", format)

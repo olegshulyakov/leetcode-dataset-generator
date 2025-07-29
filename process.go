@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -19,7 +20,7 @@ var extensionToLanguage = map[string]string{
 	".java":  "Java",
 	".js":    "JavaScript",
 	".kt":    "Kotlin",
-	".nim":    "Nim",
+	".nim":   "Nim",
 	".php":   "PHP",
 	".py":    "Python",
 	".rb":    "Ruby",
@@ -49,27 +50,32 @@ func (pr *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 		return nil
 	}
 
-	dir := filepath.Dir(path)
 	if filepath.Base(path) == "README_EN.md" {
-		base := filepath.Base(dir)
-		parts := strings.SplitN(base, ".", 2)
-		if len(parts) != 2 {
-			log.Printf("Fail to parse id and title: %s", base)
-			return nil
-		}
-
-		id, title := parts[0], parts[1]
-		pr.processDir(dir, id, title)
+		pr.processDir(path)
 	}
 
 	return nil
 }
 
-func (pr *Processor) processDir(dir, id, title string) {
-	readmePath := filepath.Join(dir, "README_EN.md")
-	readme, err := os.ReadFile(readmePath)
+func (pr *Processor) processDir(path string) {
+	dir := filepath.Dir(path)
+	base := filepath.Base(dir)
+	parts := strings.Split(base, ".")
+	if len(parts) != 2 {
+		log.Printf("Fail to parse id and title: %s", base)
+		return
+	}
+
+	idStr, title := parts[0], parts[1]
+	id, err := strconv.ParseInt(idStr, 10, 0)
 	if err != nil {
-		log.Printf("Error reading README in %s: %v", dir, err)
+		log.Printf("Fail to parse id: %v", id)
+		return
+	}
+
+	readme, err := os.ReadFile(path)
+	if err != nil {
+		log.Printf("Error reading README %s: %v", path, err)
 		return
 	}
 
@@ -82,38 +88,36 @@ func (pr *Processor) processDir(dir, id, title string) {
 	}
 
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() || !strings.HasPrefix(file.Name(), "Solution.") {
 			continue
 		}
 
-		name := file.Name()
-		if strings.HasPrefix(name, "Solution.") {
-			ext := filepath.Ext(name)
-			lang, ok := extensionToLanguage[ext]
-			if !ok {
-				log.Printf("Unknown language for solution file %s/%s: %s", dir, name, ext)
-				continue
-			}
+		fileName := file.Name()
+		ext := filepath.Ext(fileName)
+		lang, ok := extensionToLanguage[ext]
+		if !ok {
+			log.Printf("Unknown language for solution file %s/%s: %s", dir, fileName, ext)
+			continue
+		}
 
-			content, err := os.ReadFile(filepath.Join(dir, name))
-			if err != nil {
-				log.Printf("Error reading solution file %s: %v", name, err)
-				continue
-			}
+		content, err := os.ReadFile(filepath.Join(dir, fileName))
+		if err != nil {
+			log.Printf("Error reading solution file %s: %v", fileName, err)
+			continue
+		}
 
-			record := Record{
-				ID:          id,
-				Title:       title,
-				Difficulty:  difficulty,
-				Description: description,
-				Tags:        tags,
-				Language:    lang,
-				Solution:    string(content),
-			}
+		record := Record{
+			ID:          id,
+			Title:       title,
+			Difficulty:  difficulty,
+			Description: description,
+			Tags:        tags,
+			Language:    lang,
+			Solution:    string(content),
+		}
 
-			if err = (*pr.writer).WriteRecord(record); err != nil {
-				log.Printf("Error writing record: %v", err)
-			}
+		if err = (*pr.writer).WriteRecord(record); err != nil {
+			log.Printf("Error writing record: %v", err)
 		}
 	}
 }
