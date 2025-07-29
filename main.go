@@ -31,7 +31,7 @@ func main() {
 	}
 
 	processor := &Processor{
-		root: filepath.Join(*repoPath, "solution"),
+		root:   filepath.Join(*repoPath, "solution"),
 		writer: writer,
 	}
 	err = processor.Process()

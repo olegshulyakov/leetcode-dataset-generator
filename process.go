@@ -34,7 +34,7 @@ var extensionToLanguage = map[string]string{
 }
 
 type Processor struct {
-	root string
+	root   string
 	writer *DataWriter
 }
 
@@ -134,8 +134,7 @@ func (pr *Processor) parseReadme(path string) (difficulty string, tags []string,
 	content := string(readme)
 
 	lines := strings.Split(content, "\n")
-	difficultyRegex := regexp.MustCompile(`!\[(Easy|Medium|Hard)\]`)
-	tagRegex := regexp.MustCompile(`!\[([^\]]+)\]`)
+	difficultyRegex := regexp.MustCompile(`^difficulty: (\w+)$`)
 
 	inDescription := false
 	descLines := []string{}
@@ -143,29 +142,24 @@ func (pr *Processor) parseReadme(path string) (difficulty string, tags []string,
 	for _, line := range lines {
 		trimmed := strings.TrimSpace(line)
 
-		if trimmed == "## Description" {
-			inDescription = true
+		if matches := difficultyRegex.FindStringSubmatch(line); matches != nil {
+			difficulty = matches[1]
 			continue
 		}
 
-		if inDescription {
-			if strings.HasPrefix(trimmed, "## ") {
-				break
-			}
-			descLines = append(descLines, line)
-		} else {
-			if matches := difficultyRegex.FindStringSubmatch(line); matches != nil {
-				difficulty = matches[1]
-			}
-
-			if tagMatches := tagRegex.FindAllStringSubmatch(line, -1); tagMatches != nil {
-				for _, match := range tagMatches {
-					if match[1] != "Easy" && match[1] != "Medium" && match[1] != "Hard" {
-						tags = append(tags, match[1])
-					}
-				}
-			}
+		if trimmed == "<!-- description:start -->" {
+			inDescription = true
+			continue
 		}
+		if trimmed == "<!-- description:end -->" {
+			break
+		}
+
+		if !inDescription {
+			continue
+		}
+
+		descLines = append(descLines, line)
 	}
 
 	description = strings.TrimSpace(strings.Join(descLines, "\n"))
