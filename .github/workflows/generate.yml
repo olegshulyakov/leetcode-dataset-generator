@@ -39,7 +39,18 @@ jobs:
         run: |
           ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions
 
-      - name: Upload to Hugging Face
-        run: |
-          pip install huggingface_hub[cli]
-          huggingface-cli upload ${{ secrets.HF_REPO_ID }} ./leetcode-solutions.parquet --token ${{ secrets.HF_TOKEN }} --repo-type=dataset
+      - name: Set up commit message
+        id: commit-msg
+        run: echo "msg=$(date +'Update %Y-%m-%d')" >> $GITHUB_OUTPUT
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13.0"
+          cache: 'pip'
+
+      - name: Install to Hugging Face CLI
+        run: pip install huggingface_hub[cli]
+
+      - name: Upload Dataset to Hugging Face
+        run: hf upload --repo-type dataset --commit-message "${{ steps.commit-msg.outputs.msg }}" --token "${{ secrets.HF_TOKEN }}" "${{ secrets.HF_REPO_ID }}" "leetcode-solutions.parquet" "/default/train/0000.parquet"
