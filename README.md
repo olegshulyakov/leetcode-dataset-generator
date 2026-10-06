@@ -84,6 +84,9 @@ The generated dataset contains the following columns:
 | `tags`        | string | List of problem tags (e.g., ["Array", "Hash Table"]) |
 | `language`    | string | Programming language of solution                     |
 | `approach`    | int    | Approach number (`Solution.py` → 1, `Solution2.py` → 2) |
+| `approach_name` | string | Approach name (e.g., "Sliding Window"); may be empty |
+| `thinking`    | string | Reasoning that leads to the approach; may be empty   |
+| `explanation` | string | Approach explanation with complexity; may be empty   |
 | `solution`    | string | Complete solution code                               |
 
 ## Supported Languages

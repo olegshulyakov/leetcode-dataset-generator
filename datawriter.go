@@ -29,6 +29,9 @@ type Record struct {
 	Tags        string `parquet:"name=tags, type=BYTE_ARRAY, convertedtype=UTF8"        json:"tags"`
 	Language    string `parquet:"name=language, type=BYTE_ARRAY, convertedtype=UTF8"    json:"language"`
 	Approach    int64  `parquet:"name=approach, type=INT64"                             json:"approach"`
+	Name        string `parquet:"name=approach_name, type=BYTE_ARRAY, convertedtype=UTF8" json:"approach_name"`
+	Thinking    string `parquet:"name=thinking, type=BYTE_ARRAY, convertedtype=UTF8"    json:"thinking"`
+	Explanation string `parquet:"name=explanation, type=BYTE_ARRAY, convertedtype=UTF8" json:"explanation"`
 	Solution    string `parquet:"name=solution, type=BYTE_ARRAY, convertedtype=UTF8"    json:"solution"`
 }
 
@@ -62,6 +65,9 @@ func (w *CSVWriter) WriteRecord(r Record) error {
 		r.Tags,
 		r.Language,
 		strconv.FormatInt(r.Approach, 10),
+		r.Name,
+		r.Thinking,
+		r.Explanation,
 		r.Solution,
 	})
 }
@@ -96,7 +102,7 @@ func NewDataWriter(format string, f *os.File) (*DataWriter, error) {
 		out = &ParquetWriter{pw: pw}
 	case CSV:
 		cw := csv.NewWriter(f)
-		if err := cw.Write([]string{"id", "title", "difficulty", "description", "tags", "language", "approach", "solution"}); err != nil {
+		if err := cw.Write([]string{"id", "title", "difficulty", "description", "tags", "language", "approach", "approach_name", "thinking", "explanation", "solution"}); err != nil {
 			log.Printf("Failed to write CSV header: %v", err)
 			return nil, err
 		}

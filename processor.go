@@ -40,7 +40,21 @@ const (
 	metadataFile = "README_EN.md"
 	descStart    = "<!-- description:start -->"
 	descEnd      = "<!-- description:end -->"
+	tabsStart    = "<!-- tabs:start -->"
 )
+
+var (
+	solutionBlockRegex = regexp.MustCompile(`(?s)<!-- solution:start -->(.*?)<!-- solution:end -->`)
+	headingRegex       = regexp.MustCompile(`(?m)^###\s+(.*)$`)
+	thinkingRegex      = regexp.MustCompile(`(?s)<!-- thinking:start -->(.*?)<!-- thinking:end -->`)
+)
+
+// Approach is the README explanation of one solution approach.
+type Approach struct {
+	Name        string
+	Thinking    string
+	Explanation string
+}
 
 type Metadata struct {
 	Difficulty string   `yaml:"difficulty"`
@@ -104,7 +118,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 		return err
 	}
 
-	metadata, description, err := proc.parseMetadata(dir)
+	metadata, description, approaches, err := proc.parseMetadata(dir)
 	if err != nil {
 		return err
 	}
@@ -146,6 +160,11 @@ func (proc *Processor) processDir(dir string) (err error) {
 			continue
 		}
 
+		var info Approach
+		if approach <= int64(len(approaches)) {
+			info = approaches[approach-1]
+		}
+
 		record := Record{
 			ID:          id,
 			Title:       title,
@@ -154,6 +173,9 @@ func (proc *Processor) processDir(dir string) (err error) {
 			Tags:        strings.Join(metadata.Tags, "; "),
 			Language:    lang,
 			Approach:    approach,
+			Name:        info.Name,
+			Thinking:    info.Thinking,
+			Explanation: info.Explanation,
 			Solution:    string(content),
 		}
 
@@ -182,10 +204,10 @@ func (proc *Processor) parseDir(dirTitle string) (id int64, title string, err er
 	return id, title, err
 }
 
-func (proc *Processor) parseMetadata(dir string) (metadata Metadata, description string, err error) {
+func (proc *Processor) parseMetadata(dir string) (metadata Metadata, description string, approaches []Approach, err error) {
 	readme, err := os.ReadFile(filepath.Join(dir, metadataFile))
 	if err != nil {
-		return metadata, description, fmt.Errorf("failed to read metadata: %w", err)
+		return metadata, description, nil, fmt.Errorf("failed to read metadata: %w", err)
 	}
 
 	content := string(readme)
@@ -219,7 +241,7 @@ func (proc *Processor) parseMetadata(dir string) (metadata Metadata, description
 	yamlContent := strings.Join(yamlLines, "\n")
 	err = yaml.Unmarshal([]byte(yamlContent), &metadata)
 	if err != nil {
-		return metadata, "", fmt.Errorf("failed to parse metadata: %w", err)
+		return metadata, "", nil, fmt.Errorf("failed to parse metadata: %w", err)
 	}
 
 	descStartIndex := -1
@@ -236,12 +258,61 @@ func (proc *Processor) parseMetadata(dir string) (metadata Metadata, description
 	}
 
 	if descStartIndex == -1 || descEndIndex == -1 {
-		return metadata, "", errors.New("description markers not found")
+		return metadata, "", nil, errors.New("description markers not found")
 	}
 
 	descriptionLines := lines[descStartIndex+1 : descEndIndex]
 	description = strings.Join(descriptionLines, "\n")
 	description = strings.TrimSpace(description)
 
-	return metadata, description, nil
+	return metadata, description, parseApproaches(content), nil
+}
+
+// parseApproaches extracts the approach sections in order; section N describes Solution{N}.* files.
+func parseApproaches(content string) []Approach {
+	var approaches []Approach
+	for _, block := range solutionBlockRegex.FindAllStringSubmatch(content, -1) {
+		body := block[1]
+		if i := strings.Index(body, tabsStart); i >= 0 {
+			body = body[:i]
+		}
+
+		var approach Approach
+		if loc := headingRegex.FindStringSubmatchIndex(body); loc != nil {
+			approach.Name = parseApproachName(body[loc[2]:loc[3]])
+			body = body[loc[1]:]
+		}
+		if loc := thinkingRegex.FindStringSubmatchIndex(body); loc != nil {
+			approach.Thinking = cleanThinking(body[loc[2]:loc[3]])
+			body = body[:loc[0]] + body[loc[1]:]
+		}
+		approach.Explanation = strings.TrimSpace(body)
+
+		approaches = append(approaches, approach)
+	}
+	return approaches
+}
+
+// parseApproachName turns "Solution 1: Sliding Window" into "Sliding Window"; "Solution 1" yields "".
+func parseApproachName(heading string) string {
+	heading = strings.TrimSpace(heading)
+	if _, name, found := strings.Cut(heading, ":"); found {
+		return strings.TrimSpace(name)
+	}
+	if strings.HasPrefix(heading, "Solution") {
+		return ""
+	}
+	return heading
+}
+
+// cleanThinking strips the blockquote markup and the "**Thinking**" title.
+func cleanThinking(text string) string {
+	lines := strings.Split(strings.TrimSpace(text), "\n")
+	for i, line := range lines {
+		line = strings.TrimPrefix(line, ">")
+		lines[i] = strings.TrimPrefix(line, " ")
+	}
+	result := strings.TrimSpace(strings.Join(lines, "\n"))
+	result = strings.TrimPrefix(result, "**Thinking**")
+	return strings.TrimSpace(result)
 }
