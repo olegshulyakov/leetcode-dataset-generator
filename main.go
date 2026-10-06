@@ -19,7 +19,6 @@ var (
 	split        = flag.String("split", AllSplit, "Problems to include: all, train, or test")
 	testPercent  = flag.Int("test-percent", 5, "Percentage of problems assigned to the test split")
 	descFormat   = flag.String("description-format", HTMLFormat, "Description format: html or markdown")
-	includeZh    = flag.Bool("include-zh", false, "Fill description_zh with the Chinese problem description")
 	maxFailures  = flag.Int("max-failures", -1, "Fail if more problems or solution files fail to parse (-1 disables)")
 )
 
@@ -55,7 +54,6 @@ func run() (err error) {
 		layout:      *layout,
 		split:       *split,
 		testPercent: *testPercent,
-		includeZh:   *includeZh,
 		descFormat:  *descFormat,
 		writer:      writer,
 	}

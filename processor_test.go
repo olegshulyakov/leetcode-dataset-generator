@@ -241,17 +241,6 @@ func TestValidate(t *testing.T) {
 	}
 }
 
-func TestParseDescriptionZh(t *testing.T) {
-	got := parseDescriptionZh(filepath.Join(fixtureRoot, "0000-0099", "0001.Two Sum"))
-	if want := "<p>找出和为目标值的两个整数。</p>"; got != want {
-		t.Errorf("parseDescriptionZh() = %q, want %q", got, want)
-	}
-
-	if got = parseDescriptionZh(filepath.Join(fixtureRoot, "0000-0099", "0003.New Problem")); got != "" {
-		t.Errorf("parseDescriptionZh() without README.md = %q, want empty", got)
-	}
-}
-
 func TestExtractDescription(t *testing.T) {
 	tests := []struct {
 		lines     []string

@@ -39,7 +39,6 @@ var extensionToLanguage = map[string]string{
 
 const (
 	metadataFile = "README_EN.md"
-	zhReadmeFile = "README.md"
 	descStart    = "<!-- description:start -->"
 	descEnd      = "<!-- description:end -->"
 	tabsStart    = "<!-- tabs:start -->"
@@ -86,7 +85,6 @@ type Processor struct {
 	layout      string
 	split       string
 	testPercent int
-	includeZh   bool
 	descFormat  string
 	writer      DataWriter
 	processed   int
@@ -170,7 +168,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 		return fmt.Errorf("error reading directory: %w", err)
 	}
 
-	problem, err := proc.newProblem(dir, id, title, metadata, description)
+	problem, err := proc.newProblem(id, title, metadata, description)
 	if err != nil {
 		return err
 	}
@@ -219,7 +217,7 @@ func (proc *Processor) inSplit(id int64) bool {
 }
 
 // newProblem builds the problem-level fields shared by all solution records of a problem.
-func (proc *Processor) newProblem(dir string, id int64, title string, metadata Metadata, description string) (Record, error) {
+func (proc *Processor) newProblem(id int64, title string, metadata Metadata, description string) (Record, error) {
 	tags := metadata.Tags
 	if tags == nil {
 		tags = []string{}
@@ -237,17 +235,10 @@ func (proc *Processor) newProblem(dir string, id int64, title string, metadata M
 		Tags:        tags,
 	}
 
-	if proc.includeZh {
-		problem.DescriptionZh = parseDescriptionZh(dir)
-	}
-
 	if proc.descFormat == MarkdownFormat {
 		var err error
 		if problem.Description, err = htmlToMarkdown(problem.Description); err != nil {
 			return problem, fmt.Errorf("failed to convert description to markdown: %w", err)
-		}
-		if problem.DescriptionZh, err = htmlToMarkdown(problem.DescriptionZh); err != nil {
-			return problem, fmt.Errorf("failed to convert Chinese description to markdown: %w", err)
 		}
 	}
 
@@ -277,17 +268,16 @@ func toProblemRecord(problem Record, records []Record) ProblemRecord {
 		})
 	}
 	return ProblemRecord{
-		ID:            problem.ID,
-		Title:         problem.Title,
-		Slug:          problem.Slug,
-		URL:           problem.URL,
-		Difficulty:    problem.Difficulty,
-		Rating:        problem.Rating,
-		Source:        problem.Source,
-		Description:   problem.Description,
-		DescriptionZh: problem.DescriptionZh,
-		Tags:          problem.Tags,
-		Solutions:     solutions,
+		ID:          problem.ID,
+		Title:       problem.Title,
+		Slug:        problem.Slug,
+		URL:         problem.URL,
+		Difficulty:  problem.Difficulty,
+		Rating:      problem.Rating,
+		Source:      problem.Source,
+		Description: problem.Description,
+		Tags:        problem.Tags,
+		Solutions:   solutions,
 	}
 }
 
@@ -419,16 +409,6 @@ func extractDescription(lines []string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-// parseDescriptionZh returns the Chinese description from README.md, or "" when it is unavailable.
-func parseDescriptionZh(dir string) string {
-	readme, err := os.ReadFile(filepath.Join(dir, zhReadmeFile))
-	if err != nil {
-		return ""
-	}
-	description, _ := extractDescription(strings.Split(string(readme), "\n"))
-	return description
 }
 
 // parseApproaches extracts the approach sections in order; section N describes Solution{N}.* files.

@@ -60,7 +60,6 @@ Options:
   --test-percent int Percentage of problems assigned to the test split (default 5)
   --min-records int  Fail if fewer records are written (default 0)
   --max-failures int Fail if more problems or solution files fail to parse (default -1, disabled)
-  --include-zh       Fill description_zh with the Chinese problem description
   --description-format string
                      Description format: html or markdown (default "html")
   -h, --help         Display help information
@@ -95,7 +94,6 @@ With `--layout=problems`, each row is one problem; `language`, `approach`, `appr
 | `rating`        | int    | Contest rating; null when the problem has none                          |
 | `source`        | string | Contest source (e.g., "Weekly Contest 379 Q1"); may be empty            |
 | `description`   | string | Problem description as HTML, or Markdown with `--description-format=markdown` |
-| `description_zh` | string | Chinese problem description as HTML; empty unless `--include-zh`        |
 | `tags`          | list   | Problem tags (e.g., ["Array", "Hash Table"]); `; `-joined string in CSV |
 | `language`      | string | Programming language of the solution                                    |
 | `approach`      | int    | Approach number (`Solution.py` → 1, `Solution2.py` → 2)                 |

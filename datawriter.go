@@ -30,37 +30,35 @@ const (
 )
 
 type Record struct {
-	ID            int64    `parquet:"name=id, type=INT64"                                                                    json:"id"`
-	Title         string   `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"                                        json:"title"`
-	Slug          string   `parquet:"name=slug, type=BYTE_ARRAY, convertedtype=UTF8"                                         json:"slug"`
-	URL           string   `parquet:"name=url, type=BYTE_ARRAY, convertedtype=UTF8"                                          json:"url"`
-	Difficulty    string   `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"                                   json:"difficulty"`
-	Rating        *int64   `parquet:"name=rating, type=INT64, repetitiontype=OPTIONAL"                                       json:"rating"`
-	Source        string   `parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"                                       json:"source"`
-	Description   string   `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"                                  json:"description"`
-	DescriptionZh string   `parquet:"name=description_zh, type=BYTE_ARRAY, convertedtype=UTF8"                               json:"description_zh"`
-	Tags          []string `parquet:"name=tags, type=MAP, convertedtype=LIST, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8" json:"tags"`
-	Language      string   `parquet:"name=language, type=BYTE_ARRAY, convertedtype=UTF8"                                     json:"language"`
-	Approach      int64    `parquet:"name=approach, type=INT64"                                                              json:"approach"`
-	Name          string   `parquet:"name=approach_name, type=BYTE_ARRAY, convertedtype=UTF8"                                json:"approach_name"`
-	Thinking      string   `parquet:"name=thinking, type=BYTE_ARRAY, convertedtype=UTF8"                                     json:"thinking"`
-	Explanation   string   `parquet:"name=explanation, type=BYTE_ARRAY, convertedtype=UTF8"                                  json:"explanation"`
-	Solution      string   `parquet:"name=solution, type=BYTE_ARRAY, convertedtype=UTF8"                                     json:"solution"`
+	ID          int64    `parquet:"name=id, type=INT64"                                                                    json:"id"`
+	Title       string   `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"                                        json:"title"`
+	Slug        string   `parquet:"name=slug, type=BYTE_ARRAY, convertedtype=UTF8"                                         json:"slug"`
+	URL         string   `parquet:"name=url, type=BYTE_ARRAY, convertedtype=UTF8"                                          json:"url"`
+	Difficulty  string   `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"                                   json:"difficulty"`
+	Rating      *int64   `parquet:"name=rating, type=INT64, repetitiontype=OPTIONAL"                                       json:"rating"`
+	Source      string   `parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"                                       json:"source"`
+	Description string   `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"                                  json:"description"`
+	Tags        []string `parquet:"name=tags, type=MAP, convertedtype=LIST, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8" json:"tags"`
+	Language    string   `parquet:"name=language, type=BYTE_ARRAY, convertedtype=UTF8"                                     json:"language"`
+	Approach    int64    `parquet:"name=approach, type=INT64"                                                              json:"approach"`
+	Name        string   `parquet:"name=approach_name, type=BYTE_ARRAY, convertedtype=UTF8"                                json:"approach_name"`
+	Thinking    string   `parquet:"name=thinking, type=BYTE_ARRAY, convertedtype=UTF8"                                     json:"thinking"`
+	Explanation string   `parquet:"name=explanation, type=BYTE_ARRAY, convertedtype=UTF8"                                  json:"explanation"`
+	Solution    string   `parquet:"name=solution, type=BYTE_ARRAY, convertedtype=UTF8"                                     json:"solution"`
 }
 
 // ProblemRecord is one problem with all its solutions, written in the problems layout.
 type ProblemRecord struct {
-	ID            int64            `parquet:"name=id, type=INT64"                                                                    json:"id"`
-	Title         string           `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"                                        json:"title"`
-	Slug          string           `parquet:"name=slug, type=BYTE_ARRAY, convertedtype=UTF8"                                         json:"slug"`
-	URL           string           `parquet:"name=url, type=BYTE_ARRAY, convertedtype=UTF8"                                          json:"url"`
-	Difficulty    string           `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"                                   json:"difficulty"`
-	Rating        *int64           `parquet:"name=rating, type=INT64, repetitiontype=OPTIONAL"                                       json:"rating"`
-	Source        string           `parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"                                       json:"source"`
-	Description   string           `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"                                  json:"description"`
-	DescriptionZh string           `parquet:"name=description_zh, type=BYTE_ARRAY, convertedtype=UTF8"                               json:"description_zh"`
-	Tags          []string         `parquet:"name=tags, type=MAP, convertedtype=LIST, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8" json:"tags"`
-	Solutions     []SolutionRecord `parquet:"name=solutions, type=LIST"                                                              json:"solutions"`
+	ID          int64            `parquet:"name=id, type=INT64"                                                                    json:"id"`
+	Title       string           `parquet:"name=title, type=BYTE_ARRAY, convertedtype=UTF8"                                        json:"title"`
+	Slug        string           `parquet:"name=slug, type=BYTE_ARRAY, convertedtype=UTF8"                                         json:"slug"`
+	URL         string           `parquet:"name=url, type=BYTE_ARRAY, convertedtype=UTF8"                                          json:"url"`
+	Difficulty  string           `parquet:"name=difficulty, type=BYTE_ARRAY, convertedtype=UTF8"                                   json:"difficulty"`
+	Rating      *int64           `parquet:"name=rating, type=INT64, repetitiontype=OPTIONAL"                                       json:"rating"`
+	Source      string           `parquet:"name=source, type=BYTE_ARRAY, convertedtype=UTF8"                                       json:"source"`
+	Description string           `parquet:"name=description, type=BYTE_ARRAY, convertedtype=UTF8"                                  json:"description"`
+	Tags        []string         `parquet:"name=tags, type=MAP, convertedtype=LIST, valuetype=BYTE_ARRAY, valueconvertedtype=UTF8" json:"tags"`
+	Solutions   []SolutionRecord `parquet:"name=solutions, type=LIST"                                                              json:"solutions"`
 }
 
 // SolutionRecord is one solution inside a ProblemRecord.
@@ -114,7 +112,6 @@ func (w *CSVWriter) Write(record any) error {
 		rating,
 		r.Source,
 		r.Description,
-		r.DescriptionZh,
 		strings.Join(r.Tags, "; "),
 		r.Language,
 		strconv.FormatInt(r.Approach, 10),
@@ -172,7 +169,6 @@ func NewDataWriter(format, layout string, f *os.File) (DataWriter, error) {
 				"rating",
 				"source",
 				"description",
-				"description_zh",
 				"tags",
 				"language",
 				"approach",
