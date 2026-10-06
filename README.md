@@ -55,6 +55,8 @@ Options:
   --repo string      Path to leetcode repository (default ".")
   --convert string   Output format: parquet, csv, or json (default "parquet")
   --output string    Base output filename (default "leetcode-solutions")
+  --min-records int  Fail if fewer records are written (default 0)
+  --max-failures int Fail if more problems or solution files fail to parse (default -1, disabled)
   -h, --help         Display help information
 ```
 

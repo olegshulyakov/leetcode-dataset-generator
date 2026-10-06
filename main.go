@@ -14,6 +14,8 @@ var (
 	repoPath     = flag.String("repo", ".", "Path to leetcode repository")
 	outputFormat = flag.String("convert", PARQUET, "Output format: parquet, csv, or json")
 	outputName   = flag.String("output", "leetcode-solutions", "Base output filename")
+	minRecords   = flag.Int("min-records", 0, "Fail if fewer records are written")
+	maxFailures  = flag.Int("max-failures", -1, "Fail if more problems or solution files fail to parse (-1 disables)")
 )
 
 func main() {
@@ -53,7 +55,11 @@ func run() (err error) {
 		return fmt.Errorf("failed to finalize output: %w", err)
 	}
 
-	return processErr
+	if processErr != nil {
+		return processErr
+	}
+
+	return processor.Validate(*minRecords, *maxFailures)
 }
 
 func validateFlags() error {

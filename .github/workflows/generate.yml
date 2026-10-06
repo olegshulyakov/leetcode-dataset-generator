@@ -37,7 +37,7 @@ jobs:
 
       - name: Generate dataset
         run: |
-          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions
+          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions --min-records=20000 --max-failures=50
 
       - name: Set up commit message
         id: commit-msg

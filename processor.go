@@ -76,18 +76,32 @@ type Processor struct {
 	processed   int
 	failed      int
 	skipped     int
+	badFiles    int
 	writeErrors int
+	records     int
 }
 
 func (proc *Processor) Process() error {
 	err := filepath.WalkDir(proc.root, proc.walkDir)
-	log.Printf("Processing complete. Processed: %d, Failed: %d, Skipped (no solutions): %d, Write errors: %d",
-		proc.processed, proc.failed, proc.skipped, proc.writeErrors)
+	log.Printf("Processing complete. Processed: %d, Failed: %d, Skipped (no solutions): %d, Bad files: %d, Write errors: %d, Records: %d",
+		proc.processed, proc.failed, proc.skipped, proc.badFiles, proc.writeErrors, proc.records)
 	if err != nil {
 		return fmt.Errorf("error walking directory: %w", err)
 	}
 	if proc.writeErrors > 0 {
 		return fmt.Errorf("failed to write %d records", proc.writeErrors)
+	}
+	return nil
+}
+
+// Validate checks the run against quality thresholds; a negative maxFailures disables that check.
+func (proc *Processor) Validate(minRecords, maxFailures int) error {
+	if proc.records < minRecords {
+		return fmt.Errorf("too few records: %d < %d", proc.records, minRecords)
+	}
+	if failures := proc.failed + proc.badFiles; maxFailures >= 0 && failures > maxFailures {
+		return fmt.Errorf("too many failures: %d failed problems + %d bad solution files > %d",
+			proc.failed, proc.badFiles, maxFailures)
 	}
 	return nil
 }
@@ -150,6 +164,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 		if matches[1] != "" {
 			approach, err = strconv.ParseInt(matches[1], 10, 0)
 			if err != nil {
+				proc.badFiles++
 				log.Printf("Invalid approach number in %s/%s: %v", dirTitle, fileName, err)
 				continue
 			}
@@ -159,6 +174,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 		ext := filepath.Ext(fileName)
 		lang, ok := extensionToLanguage[ext]
 		if !ok {
+			proc.badFiles++
 			log.Printf("Unknown language for solution file %s/%s: %s", dirTitle, fileName, ext)
 			continue
 		}
@@ -166,6 +182,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 		var content []byte
 		content, err = os.ReadFile(filepath.Join(dir, fileName))
 		if err != nil {
+			proc.badFiles++
 			log.Printf("Error reading solution file %s: %v", fileName, err)
 			continue
 		}
@@ -196,6 +213,8 @@ func (proc *Processor) processDir(dir string) (err error) {
 		if err = (*proc.writer).WriteRecord(record); err != nil {
 			proc.writeErrors++
 			log.Printf("Error writing record %s/%s: %v", dirTitle, fileName, err)
+		} else {
+			proc.records++
 		}
 	}
 
