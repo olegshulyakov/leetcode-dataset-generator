@@ -8,8 +8,8 @@ A command-line tool to generate Hugging Face datasets from [Doocs LeetCode](http
 ## Features
 
 - 🚀 Extract LeetCode solutions with metadata
-- 📊 Multiple output formats: Parquet (default), CSV, JSON
-- 📚 Parses problem descriptions, difficulties, and tags
+- 📊 Multiple output formats: Parquet (default), CSV, JSON Lines
+- 📚 Parses problem descriptions, difficulties, tags, and per-approach explanations
 - 💾 Efficient processing with streaming writes
 - 🔍 Automatic language detection from file extensions
 
@@ -66,7 +66,7 @@ Options:
 # Generate CSV dataset
 ./leetcode-dataset --repo=leetcode --convert=csv --output=leetcode-csv
 
-# Generate JSON dataset
+# Generate JSON Lines dataset (one JSON object per line, written to a .json file)
 ./leetcode-dataset --repo=leetcode --convert=json --output=leetcode-json
 
 # Specify custom repository path
@@ -75,44 +75,44 @@ Options:
 
 ## Dataset Schema
 
-The generated dataset contains the following columns:
+Each row is one solution file: a problem in one language for one approach.
 
-| Column        | Type   | Description                                          |
-| ------------- | ------ | ---------------------------------------------------- |
-| `id`          | string | Problem ID (e.g., "0001")                            |
-| `title`       | string | Problem title (e.g., "two-sum")                      |
-| `slug`        | string | Problem slug (e.g., "two-sum")                       |
-| `url`         | string | Problem URL on leetcode.com                          |
-| `difficulty`  | string | Problem difficulty ("Easy", "Medium", "Hard")        |
-| `rating`      | int    | Contest rating; null when the problem has none       |
-| `source`      | string | Contest source (e.g., "Weekly Contest 379 Q1"); may be empty |
-| `description` | string | Problem description in markdown format               |
-| `tags`        | list   | Problem tags (e.g., ["Array", "Hash Table"]); `; `-joined string in CSV |
-| `language`    | string | Programming language of solution                     |
-| `approach`    | int    | Approach number (`Solution.py` → 1, `Solution2.py` → 2) |
-| `approach_name` | string | Approach name (e.g., "Sliding Window"); may be empty |
-| `thinking`    | string | Reasoning that leads to the approach; may be empty   |
-| `explanation` | string | Approach explanation with complexity; may be empty   |
-| `solution`    | string | Complete solution code                               |
+| Column          | Type   | Description                                                             |
+| --------------- | ------ | ----------------------------------------------------------------------- |
+| `id`            | int    | Problem number (e.g., `1`)                                              |
+| `title`         | string | Problem title (e.g., "Two Sum")                                         |
+| `slug`          | string | Problem slug (e.g., "two-sum")                                          |
+| `url`           | string | Problem URL on leetcode.com                                             |
+| `difficulty`    | string | Problem difficulty ("Easy", "Medium", "Hard")                           |
+| `rating`        | int    | Contest rating; null when the problem has none                          |
+| `source`        | string | Contest source (e.g., "Weekly Contest 379 Q1"); may be empty            |
+| `description`   | string | Problem description as HTML                                             |
+| `tags`          | list   | Problem tags (e.g., ["Array", "Hash Table"]); `; `-joined string in CSV |
+| `language`      | string | Programming language of the solution                                    |
+| `approach`      | int    | Approach number (`Solution.py` → 1, `Solution2.py` → 2)                 |
+| `approach_name` | string | Approach name (e.g., "Sliding Window"); may be empty                    |
+| `thinking`      | string | Reasoning that leads to the approach; may be empty                      |
+| `explanation`   | string | Approach explanation with complexity; may be empty                      |
+| `solution`      | string | Complete solution code                                                  |
 
 ## Supported Languages
 
-The tool automatically detects these programming languages based on file extensions:
+The tool detects the programming language from the solution file extension:
 
-- `.c` → C
-- `.cpp` → C++
-- `.cs` → C#
-- `.go` → Go
-- `.java` → Java
-- `.js` → JavaScript
-- `.php` → PHP
-- `.py` → Python
-- `.rb` → Ruby
-- `.rs` → Rust
-- `.sh` → Bash
-- `.sql` → SQL
-- `.ts` → TypeScript
-- Other → Uses file extension as language name
+| Extension | Language   | Extension | Language   |
+| --------- | ---------- | --------- | ---------- |
+| `.c`      | C          | `.nim`    | Nim        |
+| `.cj`     | Cangjie    | `.php`    | PHP        |
+| `.cpp`    | C++        | `.py`     | Python     |
+| `.cs`     | C#         | `.rb`     | Ruby       |
+| `.dart`   | Dart       | `.rs`     | Rust       |
+| `.go`     | Go         | `.scala`  | Scala      |
+| `.java`   | Java       | `.sh`     | Bash       |
+| `.js`     | JavaScript | `.sql`    | SQL        |
+| `.kt`     | Kotlin     | `.swift`  | Swift      |
+| `.ts`     | TypeScript |           |            |
+
+Files with other extensions are skipped and counted as failures (see `--max-failures`).
 
 ## License
 
