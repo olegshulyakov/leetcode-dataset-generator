@@ -83,6 +83,7 @@ The generated dataset contains the following columns:
 | `description` | string | Problem description in markdown format               |
 | `tags`        | string | List of problem tags (e.g., ["Array", "Hash Table"]) |
 | `language`    | string | Programming language of solution                     |
+| `approach`    | int    | Approach number (`Solution.py` → 1, `Solution2.py` → 2) |
 | `solution`    | string | Complete solution code                               |
 
 ## Supported Languages

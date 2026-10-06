@@ -47,6 +47,8 @@ type Metadata struct {
 	Tags       []string `yaml:"tags"`
 }
 
+var solutionFileRegex = regexp.MustCompile(`^Solution(\d*)\.\w+$`)
+
 type Processor struct {
 	root      string
 	writer    *DataWriter
@@ -101,12 +103,22 @@ func (proc *Processor) processDir(dir string) (err error) {
 
 	solutionsFound := 0
 	for _, file := range files {
-		if file.IsDir() || !strings.HasPrefix(file.Name(), "Solution.") {
+		fileName := file.Name()
+		matches := solutionFileRegex.FindStringSubmatch(fileName)
+		if file.IsDir() || matches == nil {
 			continue
 		}
 
+		approach := int64(1)
+		if matches[1] != "" {
+			approach, err = strconv.ParseInt(matches[1], 10, 0)
+			if err != nil {
+				log.Printf("Invalid approach number in %s/%s: %v", dirTitle, fileName, err)
+				continue
+			}
+		}
+
 		solutionsFound++
-		fileName := file.Name()
 		ext := filepath.Ext(fileName)
 		lang, ok := extensionToLanguage[ext]
 		if !ok {
@@ -128,6 +140,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 			Description: description,
 			Tags:        strings.Join(metadata.Tags, "; "),
 			Language:    lang,
+			Approach:    approach,
 			Solution:    string(content),
 		}
 
