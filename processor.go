@@ -47,6 +47,7 @@ var (
 	solutionBlockRegex = regexp.MustCompile(`(?s)<!-- solution:start -->(.*?)<!-- solution:end -->`)
 	headingRegex       = regexp.MustCompile(`(?m)^###\s+(.*)$`)
 	thinkingRegex      = regexp.MustCompile(`(?s)<!-- thinking:start -->(.*?)<!-- thinking:end -->`)
+	problemURLRegex    = regexp.MustCompile(`(?m)^# \[[^\]]*\]\((https://leetcode\.com/problems/([^/)]+)/?)\)`)
 )
 
 // Approach is the README explanation of one solution approach.
@@ -58,7 +59,11 @@ type Approach struct {
 
 type Metadata struct {
 	Difficulty string   `yaml:"difficulty"`
+	Rating     *int64   `yaml:"rating"`
+	Source     string   `yaml:"source"`
 	Tags       []string `yaml:"tags"`
+	URL        string   `yaml:"-"`
+	Slug       string   `yaml:"-"`
 }
 
 var solutionFileRegex = regexp.MustCompile(`^Solution(\d*)\.\w+$`)
@@ -128,6 +133,11 @@ func (proc *Processor) processDir(dir string) (err error) {
 		return fmt.Errorf("error reading directory: %w", err)
 	}
 
+	tags := metadata.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+
 	solutionsFound := 0
 	for _, file := range files {
 		fileName := file.Name()
@@ -168,9 +178,13 @@ func (proc *Processor) processDir(dir string) (err error) {
 		record := Record{
 			ID:          id,
 			Title:       title,
+			Slug:        metadata.Slug,
+			URL:         metadata.URL,
 			Difficulty:  metadata.Difficulty,
+			Rating:      metadata.Rating,
+			Source:      metadata.Source,
 			Description: description,
-			Tags:        strings.Join(metadata.Tags, "; "),
+			Tags:        tags,
 			Language:    lang,
 			Approach:    approach,
 			Name:        info.Name,
@@ -242,6 +256,11 @@ func (proc *Processor) parseMetadata(dir string) (metadata Metadata, description
 	err = yaml.Unmarshal([]byte(yamlContent), &metadata)
 	if err != nil {
 		return metadata, "", nil, fmt.Errorf("failed to parse metadata: %w", err)
+	}
+
+	if matches := problemURLRegex.FindStringSubmatch(content); matches != nil {
+		metadata.URL = matches[1]
+		metadata.Slug = matches[2]
 	}
 
 	descStartIndex := -1

@@ -79,9 +79,13 @@ The generated dataset contains the following columns:
 | ------------- | ------ | ---------------------------------------------------- |
 | `id`          | string | Problem ID (e.g., "0001")                            |
 | `title`       | string | Problem title (e.g., "two-sum")                      |
+| `slug`        | string | Problem slug (e.g., "two-sum")                       |
+| `url`         | string | Problem URL on leetcode.com                          |
 | `difficulty`  | string | Problem difficulty ("Easy", "Medium", "Hard")        |
+| `rating`      | int    | Contest rating; null when the problem has none       |
+| `source`      | string | Contest source (e.g., "Weekly Contest 379 Q1"); may be empty |
 | `description` | string | Problem description in markdown format               |
-| `tags`        | string | List of problem tags (e.g., ["Array", "Hash Table"]) |
+| `tags`        | list   | Problem tags (e.g., ["Array", "Hash Table"]); `; `-joined string in CSV |
 | `language`    | string | Programming language of solution                     |
 | `approach`    | int    | Approach number (`Solution.py` → 1, `Solution2.py` → 2) |
 | `approach_name` | string | Approach name (e.g., "Sliding Window"); may be empty |
