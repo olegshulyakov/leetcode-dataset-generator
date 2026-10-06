@@ -48,8 +48,8 @@ The dataset has two configs:
 | `difficulty`    | `string`       | Difficulty level                                             | "Easy", "Medium", "Hard"          |
 | `rating`        | `int64`        | Contest rating; null when the problem has none               | `1249`                            |
 | `source`        | `string`       | Contest source; may be empty                                 | "Weekly Contest 379 Q1"           |
-| `description`   | `string`       | Problem description as HTML                                  | "<p>Given an array of integers…"  |
-| `description_zh` | `string`     | Chinese problem description as HTML; empty in this release   | ""                                |
+| `description`   | `string`       | Problem description as Markdown                              | "Given an array of integers…"     |
+| `description_zh` | `string`     | Chinese problem description; empty in this release           | ""                                |
 | `tags`          | `list<string>` | Problem tags                                                 | ["Array", "Hash Table"]           |
 | `language`      | `string`       | Programming language of the solution                         | "Python", "Java", "C++"           |
 | `approach`      | `int64`        | Approach number within the problem                           | `1`, `2`                          |
@@ -88,7 +88,7 @@ print(sample["solution"])
 ## Limitations
 
 - Solutions are community-written and may not be optimal.
-- Descriptions are HTML copied from the problem pages.
+- Descriptions are converted from HTML to Markdown. Superscripts and subscripts are written as `^x` and `_x` (e.g. `10^4`), parenthesized when complex (e.g. `2^(n-1)`).
 - Alternative approaches (`approach` > 1) often have only `thinking` and no `explanation`.
 - Coverage is limited to problems that have solutions in the Doocs repository.
 

@@ -74,7 +74,7 @@ jobs:
       - name: Generate dataset
         if: steps.check.outputs.skip != 'true'
         run: |
-          generate() { ./generator/leetcode-dataset --repo=leetcode-repo --max-failures=50 "$@"; }
+          generate() { ./generator/leetcode-dataset --repo=leetcode-repo --description-format=markdown --max-failures=50 "$@"; }
           generate --output=solutions-train --split=train --min-records=19000
           generate --output=solutions-test --split=test --min-records=500
           generate --output=problems-train --split=train --layout=problems --min-records=3000
