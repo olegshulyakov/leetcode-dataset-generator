@@ -18,30 +18,18 @@ jobs:
           repository: olegshulyakov/leetcode-dataset-generator
           path: generator
 
-      - name: Set up Go
-        uses: actions/setup-go@v7
-        with:
-          go-version: "stable"
-          cache-dependency-path: generator/go.sum
-
-      - name: Build Go application
-        run: |
-          cd generator
-          go build -o leetcode-dataset
-
       - name: Checkout LeetCode repository
         uses: actions/checkout@v7
         with:
           repository: doocs/leetcode
           path: leetcode-repo
 
-      - name: Generate dataset
-        run: |
-          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions --min-records=20000 --max-failures=50
-
       - name: Set up commit message
         id: commit-msg
-        run: echo "msg=$(date +'Update %Y-%m-%d')" >> $GITHUB_OUTPUT
+        run: |
+          sources="doocs@$(git -C leetcode-repo rev-parse --short HEAD), generator@$(git -C generator rev-parse --short HEAD)"
+          echo "sources=$sources" >> $GITHUB_OUTPUT
+          echo "msg=$(date +'Update %Y-%m-%d') ($sources)" >> $GITHUB_OUTPUT
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -52,11 +40,49 @@ jobs:
       - name: Install to Hugging Face CLI
         run: pip install huggingface_hub
 
+      - name: Check for upstream changes
+        id: check
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
+          SOURCES: ${{ steps.commit-msg.outputs.sources }}
+        run: |
+          python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+
+          last = HfApi().list_repo_commits(os.environ["HF_REPO_ID"], repo_type="dataset")[0].title
+          skip = os.environ["SOURCES"] in last
+          print(f"Last commit: {last!r}; skip: {skip}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"skip={str(skip).lower()}\n")
+          EOF
+
+      - name: Set up Go
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/setup-go@v7
+        with:
+          go-version: "stable"
+          cache-dependency-path: generator/go.sum
+
+      - name: Build Go application
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cd generator
+          go build -o leetcode-dataset
+
+      - name: Generate dataset
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions --min-records=20000 --max-failures=50
+
       - name: Prepare upload folder
+        if: steps.check.outputs.skip != 'true'
         run: |
           mkdir -p upload/default/train
           cp generator/dataset/README.md upload/README.md
           cp leetcode-solutions.parquet upload/default/train/0000.parquet
 
       - name: Upload Dataset to Hugging Face
+        if: steps.check.outputs.skip != 'true'
         run: hf upload --repo-type dataset --commit-message "${{ steps.commit-msg.outputs.msg }}" --token "${{ secrets.HF_TOKEN }}" "${{ secrets.HF_REPO_ID }}" upload .
