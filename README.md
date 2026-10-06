@@ -55,6 +55,7 @@ Options:
   --repo string      Path to leetcode repository (default ".")
   --convert string   Output format: parquet, csv, or json (default "parquet")
   --output string    Base output filename (default "leetcode-solutions")
+  --layout string    Row layout: solutions or problems (default "solutions")
   --min-records int  Fail if fewer records are written (default 0)
   --max-failures int Fail if more problems or solution files fail to parse (default -1, disabled)
   --include-zh       Fill description_zh with the Chinese problem description
@@ -76,7 +77,9 @@ Options:
 
 ## Dataset Schema
 
-Each row is one solution file: a problem in one language for one approach.
+With `--layout=solutions` (default), each row is one solution file: a problem in one language for one approach.
+
+With `--layout=problems`, each row is one problem; `language`, `approach`, `approach_name`, `thinking`, `explanation`, and `solution` are nested in a `solutions` list. CSV supports only the solutions layout.
 
 | Column          | Type   | Description                                                             |
 | --------------- | ------ | ----------------------------------------------------------------------- |

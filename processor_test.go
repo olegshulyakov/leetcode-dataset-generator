@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -105,18 +106,18 @@ func TestParseApproachName(t *testing.T) {
 }
 
 // runFixture processes the fixture repository into a file of the given format.
-func runFixture(t *testing.T, format string) (*Processor, string) {
+func runFixture(t *testing.T, format, layout string) (*Processor, string) {
 	t.Helper()
 	path := filepath.Join(t.TempDir(), "out."+format)
 	f, err := os.Create(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	writer, err := NewDataWriter(format, f)
+	writer, err := NewDataWriter(format, layout, f)
 	if err != nil {
 		t.Fatal(err)
 	}
-	proc := &Processor{root: fixtureRoot, writer: writer}
+	proc := &Processor{root: fixtureRoot, layout: layout, writer: writer}
 	if err = proc.Process(); err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +131,7 @@ func runFixture(t *testing.T, format string) (*Processor, string) {
 }
 
 func TestProcessJSON(t *testing.T) {
-	proc, path := runFixture(t, JSON)
+	proc, path := runFixture(t, JSON, SolutionsLayout)
 
 	if proc.records != 4 || proc.failed != 1 || proc.skipped != 1 || proc.badFiles != 1 {
 		t.Errorf("records=%d failed=%d skipped=%d badFiles=%d; want 4, 1, 1, 1",
@@ -173,7 +174,7 @@ func TestProcessJSON(t *testing.T) {
 }
 
 func TestProcessCSV(t *testing.T) {
-	_, path := runFixture(t, CSV)
+	_, path := runFixture(t, CSV, SolutionsLayout)
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -194,7 +195,7 @@ func TestProcessCSV(t *testing.T) {
 }
 
 func TestProcessParquet(t *testing.T) {
-	_, path := runFixture(t, PARQUET)
+	_, path := runFixture(t, PARQUET, SolutionsLayout)
 
 	fr, err := local.NewLocalFileReader(path)
 	if err != nil {
@@ -267,5 +268,63 @@ func TestExtractDescription(t *testing.T) {
 		if got != tt.want || found != tt.wantFound {
 			t.Errorf("extractDescription(%q) = %q, %v; want %q, %v", tt.lines, got, found, tt.want, tt.wantFound)
 		}
+	}
+}
+
+func TestProcessProblemsLayoutJSON(t *testing.T) {
+	proc, path := runFixture(t, JSON, ProblemsLayout)
+	if proc.records != 2 {
+		t.Errorf("records = %d, want 2 problems", proc.records)
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var problem ProblemRecord
+	if err = json.NewDecoder(bytes.NewReader(data)).Decode(&problem); err != nil {
+		t.Fatal(err)
+	}
+	if problem.Slug != "two-sum" || len(problem.Solutions) != 3 {
+		t.Fatalf("got %s with %d solutions, want two-sum with 3", problem.Slug, len(problem.Solutions))
+	}
+	if s := problem.Solutions[2]; s.Language != "Python" || s.Approach != 2 || s.Thinking != "Sorting also works." {
+		t.Errorf("unexpected third solution: %+v", s)
+	}
+}
+
+func TestProcessProblemsLayoutParquet(t *testing.T) {
+	_, path := runFixture(t, PARQUET, ProblemsLayout)
+
+	fr, err := local.NewLocalFileReader(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer fr.Close()
+
+	pr, err := reader.NewParquetReader(fr, new(ProblemRecord), 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pr.ReadStop()
+
+	rows := make([]ProblemRecord, pr.GetNumRows())
+	if err = pr.Read(&rows); err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || len(rows[0].Solutions) != 3 || rows[0].Solutions[0].Language != "Go" {
+		t.Errorf("unexpected problems: %+v", rows)
+	}
+}
+
+func TestCSVRejectsProblemsLayout(t *testing.T) {
+	f, err := os.Create(filepath.Join(t.TempDir(), "out.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer f.Close()
+
+	if _, err = NewDataWriter(CSV, ProblemsLayout, f); err == nil {
+		t.Error("expected error for CSV with problems layout")
 	}
 }

@@ -14,6 +14,10 @@ configs:
   data_files:
   - split: train
     path: default/train/*.parquet
+- config_name: problems
+  data_files:
+  - split: train
+    path: problems/train/*.parquet
 ---
 
 # Doocs LeetCode Solutions
@@ -24,7 +28,10 @@ The dataset is regenerated weekly from the latest Doocs commit by the [leetcode-
 
 ## Structure
 
-Each row is one solution file: a problem in one language for one approach.
+The dataset has two configs:
+
+- `default`: one row per solution file (a problem in one language for one approach).
+- `problems`: one row per problem; the solution fields below are nested in a `solutions` list.
 
 ### Data Fields
 
@@ -59,6 +66,8 @@ A single `train` split contains all problems and solutions. The same problem app
 from datasets import load_dataset
 
 dataset = load_dataset("olegshulyakov/doocs-leetcode-solutions", split="train")
+# One row per problem with nested solutions:
+# problems = load_dataset("olegshulyakov/doocs-leetcode-solutions", "problems", split="train")
 
 sample = dataset[0]
 print(f"Problem {sample['id']}: {sample['title']} ({sample['difficulty']})")

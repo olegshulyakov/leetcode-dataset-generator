@@ -75,13 +75,15 @@ jobs:
         if: steps.check.outputs.skip != 'true'
         run: |
           ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions --min-records=20000 --max-failures=50
+          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-problems --layout=problems --min-records=3000 --max-failures=50
 
       - name: Prepare upload folder
         if: steps.check.outputs.skip != 'true'
         run: |
-          mkdir -p upload/default/train
+          mkdir -p upload/default/train upload/problems/train
           cp generator/dataset/README.md upload/README.md
           cp leetcode-solutions.parquet upload/default/train/0000.parquet
+          cp leetcode-problems.parquet upload/problems/train/0000.parquet
 
       - name: Upload Dataset to Hugging Face
         if: steps.check.outputs.skip != 'true'

@@ -73,6 +73,7 @@ var errNoSolutions = errors.New("no solution files found")
 
 type Processor struct {
 	root        string
+	layout      string
 	includeZh   bool
 	writer      *DataWriter
 	processed   int
@@ -171,6 +172,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 	}
 
 	solutionsFound := 0
+	var records []Record
 	for _, file := range files {
 		matches := solutionFileRegex.FindStringSubmatch(file.Name())
 		if file.IsDir() || matches == nil {
@@ -178,22 +180,71 @@ func (proc *Processor) processDir(dir string) (err error) {
 		}
 
 		solutionsFound++
-		proc.processSolution(dir, file.Name(), matches[1], problem, approaches)
+		if record, ok := proc.readSolution(dir, file.Name(), matches[1], problem, approaches); ok {
+			records = append(records, record)
+		}
 	}
 
 	if solutionsFound == 0 {
 		return errNoSolutions
 	}
 
+	if proc.layout == ProblemsLayout {
+		if len(records) > 0 {
+			proc.write(toProblemRecord(problem, records), dirTitle)
+		}
+		return nil
+	}
+
+	for _, record := range records {
+		proc.write(record, dirTitle+"/"+record.Language)
+	}
 	return nil
 }
 
-// processSolution writes one solution file as a record; problem holds the problem-level fields.
-func (proc *Processor) processSolution(
+func (proc *Processor) write(record any, label string) {
+	if err := (*proc.writer).Write(record); err != nil {
+		proc.writeErrors++
+		log.Printf("Error writing record %s: %v", label, err)
+		return
+	}
+	proc.records++
+}
+
+// toProblemRecord groups the solution records of one problem; problem holds the problem-level fields.
+func toProblemRecord(problem Record, records []Record) ProblemRecord {
+	solutions := make([]SolutionRecord, 0, len(records))
+	for _, r := range records {
+		solutions = append(solutions, SolutionRecord{
+			Language:    r.Language,
+			Approach:    r.Approach,
+			Name:        r.Name,
+			Thinking:    r.Thinking,
+			Explanation: r.Explanation,
+			Solution:    r.Solution,
+		})
+	}
+	return ProblemRecord{
+		ID:            problem.ID,
+		Title:         problem.Title,
+		Slug:          problem.Slug,
+		URL:           problem.URL,
+		Difficulty:    problem.Difficulty,
+		Rating:        problem.Rating,
+		Source:        problem.Source,
+		Description:   problem.Description,
+		DescriptionZh: problem.DescriptionZh,
+		Tags:          problem.Tags,
+		Solutions:     solutions,
+	}
+}
+
+// readSolution reads one solution file as a record; problem holds the problem-level fields.
+func (proc *Processor) readSolution(
 	dir, fileName, approachNumber string,
 	problem Record,
 	approaches []Approach,
-) {
+) (Record, bool) {
 	dirTitle := filepath.Base(dir)
 
 	approach := int64(1)
@@ -203,7 +254,7 @@ func (proc *Processor) processSolution(
 		if err != nil {
 			proc.badFiles++
 			log.Printf("Invalid approach number in %s/%s: %v", dirTitle, fileName, err)
-			return
+			return Record{}, false
 		}
 	}
 
@@ -212,14 +263,14 @@ func (proc *Processor) processSolution(
 	if !ok {
 		proc.badFiles++
 		log.Printf("Unknown language for solution file %s/%s: %s", dirTitle, fileName, ext)
-		return
+		return Record{}, false
 	}
 
 	content, err := os.ReadFile(filepath.Join(dir, fileName))
 	if err != nil {
 		proc.badFiles++
 		log.Printf("Error reading solution file %s/%s: %v", dirTitle, fileName, err)
-		return
+		return Record{}, false
 	}
 
 	var info Approach
@@ -234,13 +285,7 @@ func (proc *Processor) processSolution(
 	record.Thinking = info.Thinking
 	record.Explanation = info.Explanation
 	record.Solution = string(content)
-
-	if err = (*proc.writer).WriteRecord(record); err != nil {
-		proc.writeErrors++
-		log.Printf("Error writing record %s/%s: %v", dirTitle, fileName, err)
-		return
-	}
-	proc.records++
+	return record, true
 }
 
 func (proc *Processor) parseDir(dirTitle string) (id int64, title string, err error) {

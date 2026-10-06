@@ -14,6 +14,7 @@ var (
 	repoPath     = flag.String("repo", ".", "Path to leetcode repository")
 	outputFormat = flag.String("convert", PARQUET, "Output format: parquet, csv, or json")
 	outputName   = flag.String("output", "leetcode-solutions", "Base output filename")
+	layout       = flag.String("layout", SolutionsLayout, "Row layout: solutions (one row per solution) or problems (one row per problem)")
 	minRecords   = flag.Int("min-records", 0, "Fail if fewer records are written")
 	includeZh    = flag.Bool("include-zh", false, "Fill description_zh with the Chinese problem description")
 	maxFailures  = flag.Int("max-failures", -1, "Fail if more problems or solution files fail to parse (-1 disables)")
@@ -41,13 +42,14 @@ func run() (err error) {
 		}
 	}()
 
-	writer, err := NewDataWriter(*outputFormat, f)
+	writer, err := NewDataWriter(*outputFormat, *layout, f)
 	if err != nil {
 		return fmt.Errorf("failed to create writer: %w", err)
 	}
 
 	processor := &Processor{
 		root:      filepath.Join(*repoPath, "solution"),
+		layout:    *layout,
 		includeZh: *includeZh,
 		writer:    writer,
 	}
@@ -81,6 +83,14 @@ func validateFlags() error {
 
 	if !validFormats[strings.ToLower(*outputFormat)] {
 		return fmt.Errorf("unsupported format: %s", *outputFormat)
+	}
+
+	if *layout != SolutionsLayout && *layout != ProblemsLayout {
+		return fmt.Errorf("unsupported layout: %s", *layout)
+	}
+
+	if *layout == ProblemsLayout && strings.EqualFold(*outputFormat, CSV) {
+		return fmt.Errorf("the %s layout is not supported for CSV", ProblemsLayout)
 	}
 
 	return nil
