@@ -34,10 +34,6 @@ go mod tidy
 go build -o leetcode-dataset
 ```
 
-### Download Pre-built Binary
-
-Check the [Releases page](https://github.com/olegshulyakov/leetcode-dataset-generator/releases) for pre-built binaries.
-
 ## Usage
 
 ### Basic Example
