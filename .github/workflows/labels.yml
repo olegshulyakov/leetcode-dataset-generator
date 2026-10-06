@@ -36,7 +36,7 @@ jobs:
           {"name": "help-wanted",   "color": "008672", "description": "Open for contributors"}
         ]
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         with:
           script: |
             const labels = JSON.parse(process.env.LABELS_JSON);
