@@ -16,6 +16,6 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/klauspost/compress v1.20.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
-	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 )
