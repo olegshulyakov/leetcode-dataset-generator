@@ -74,16 +74,22 @@ jobs:
       - name: Generate dataset
         if: steps.check.outputs.skip != 'true'
         run: |
-          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-solutions --min-records=20000 --max-failures=50
-          ./generator/leetcode-dataset --repo=leetcode-repo --output=leetcode-problems --layout=problems --min-records=3000 --max-failures=50
+          generate() { ./generator/leetcode-dataset --repo=leetcode-repo --max-failures=50 "$@"; }
+          generate --output=solutions-train --split=train --min-records=19000
+          generate --output=solutions-test --split=test --min-records=500
+          generate --output=problems-train --split=train --layout=problems --min-records=3000
+          generate --output=problems-test --split=test --layout=problems --min-records=100
 
       - name: Prepare upload folder
         if: steps.check.outputs.skip != 'true'
         run: |
-          mkdir -p upload/default/train upload/problems/train
+          mkdir -p upload
           cp generator/dataset/README.md upload/README.md
-          cp leetcode-solutions.parquet upload/default/train/0000.parquet
-          cp leetcode-problems.parquet upload/problems/train/0000.parquet
+          for split in train test; do
+            mkdir -p upload/default/$split upload/problems/$split
+            cp solutions-$split.parquet upload/default/$split/0000.parquet
+            cp problems-$split.parquet upload/problems/$split/0000.parquet
+          done
 
       - name: Upload Dataset to Hugging Face
         if: steps.check.outputs.skip != 'true'

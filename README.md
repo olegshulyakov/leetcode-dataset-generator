@@ -56,6 +56,8 @@ Options:
   --convert string   Output format: parquet, csv, or json (default "parquet")
   --output string    Base output filename (default "leetcode-solutions")
   --layout string    Row layout: solutions or problems (default "solutions")
+  --split string     Problems to include: all, train, or test (default "all")
+  --test-percent int Percentage of problems assigned to the test split (default 5)
   --min-records int  Fail if fewer records are written (default 0)
   --max-failures int Fail if more problems or solution files fail to parse (default -1, disabled)
   --include-zh       Fill description_zh with the Chinese problem description

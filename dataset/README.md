@@ -14,10 +14,14 @@ configs:
   data_files:
   - split: train
     path: default/train/*.parquet
+  - split: test
+    path: default/test/*.parquet
 - config_name: problems
   data_files:
   - split: train
     path: problems/train/*.parquet
+  - split: test
+    path: problems/test/*.parquet
 ---
 
 # Doocs LeetCode Solutions
@@ -58,7 +62,12 @@ Languages: Bash, C, C#, C++, Cangjie, Dart, Go, Java, JavaScript, Kotlin, Nim, P
 
 ### Data Splits
 
-A single `train` split contains all problems and solutions. The same problem appears in several rows (one per language and approach), so split by `id` to avoid leakage between your train and test sets.
+| Split   | Share of problems |
+| ------- | ----------------- |
+| `train` | ~95%              |
+| `test`  | ~5%               |
+
+Problems are assigned to a split by a hash of their `id`, so all solutions of a problem stay in the same split and existing problems keep their split as new ones are added.
 
 ## How to Use
 

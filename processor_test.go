@@ -328,3 +328,26 @@ func TestCSVRejectsProblemsLayout(t *testing.T) {
 		t.Error("expected error for CSV with problems layout")
 	}
 }
+
+func TestInSplit(t *testing.T) {
+	train := &Processor{split: TrainSplit, testPercent: 5}
+	test := &Processor{split: TestSplit, testPercent: 5}
+	all := &Processor{split: AllSplit, testPercent: 5}
+
+	testCount := 0
+	for id := int64(1); id <= 10000; id++ {
+		inTrain, inTest := train.inSplit(id), test.inSplit(id)
+		if inTrain == inTest {
+			t.Fatalf("problem %d: train=%v test=%v; want exactly one", id, inTrain, inTest)
+		}
+		if !all.inSplit(id) {
+			t.Fatalf("problem %d is missing from the all split", id)
+		}
+		if inTest {
+			testCount++
+		}
+	}
+	if testCount < 400 || testCount > 600 {
+		t.Errorf("test split has %d of 10000 problems, want about 500", testCount)
+	}
+}

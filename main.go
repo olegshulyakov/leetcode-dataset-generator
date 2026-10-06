@@ -16,6 +16,8 @@ var (
 	outputName   = flag.String("output", "leetcode-solutions", "Base output filename")
 	layout       = flag.String("layout", SolutionsLayout, "Row layout: solutions (one row per solution) or problems (one row per problem)")
 	minRecords   = flag.Int("min-records", 0, "Fail if fewer records are written")
+	split        = flag.String("split", AllSplit, "Problems to include: all, train, or test")
+	testPercent  = flag.Int("test-percent", 5, "Percentage of problems assigned to the test split")
 	includeZh    = flag.Bool("include-zh", false, "Fill description_zh with the Chinese problem description")
 	maxFailures  = flag.Int("max-failures", -1, "Fail if more problems or solution files fail to parse (-1 disables)")
 )
@@ -48,10 +50,12 @@ func run() (err error) {
 	}
 
 	processor := &Processor{
-		root:      filepath.Join(*repoPath, "solution"),
-		layout:    *layout,
-		includeZh: *includeZh,
-		writer:    writer,
+		root:        filepath.Join(*repoPath, "solution"),
+		layout:      *layout,
+		split:       *split,
+		testPercent: *testPercent,
+		includeZh:   *includeZh,
+		writer:      writer,
 	}
 	processErr := processor.Process()
 
@@ -87,6 +91,14 @@ func validateFlags() error {
 
 	if *layout != SolutionsLayout && *layout != ProblemsLayout {
 		return fmt.Errorf("unsupported layout: %s", *layout)
+	}
+
+	if *split != AllSplit && *split != TrainSplit && *split != TestSplit {
+		return fmt.Errorf("unsupported split: %s", *split)
+	}
+
+	if *testPercent < 0 || *testPercent > percentBase {
+		return fmt.Errorf("test percent must be between 0 and 100: %d", *testPercent)
 	}
 
 	if *layout == ProblemsLayout && strings.EqualFold(*outputFormat, CSV) {

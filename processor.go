@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"io/fs"
 	"log"
 	"os"
@@ -42,6 +43,8 @@ const (
 	descStart    = "<!-- description:start -->"
 	descEnd      = "<!-- description:end -->"
 	tabsStart    = "<!-- tabs:start -->"
+
+	percentBase = 100
 )
 
 var (
@@ -74,6 +77,8 @@ var errNoSolutions = errors.New("no solution files found")
 type Processor struct {
 	root        string
 	layout      string
+	split       string
+	testPercent int
 	includeZh   bool
 	writer      *DataWriter
 	processed   int
@@ -139,6 +144,9 @@ func (proc *Processor) processDir(dir string) (err error) {
 	if err != nil {
 		return err
 	}
+	if !proc.inSplit(id) {
+		return nil
+	}
 
 	metadata, description, approaches, err := proc.parseMetadata(dir)
 	if err != nil {
@@ -200,6 +208,18 @@ func (proc *Processor) processDir(dir string) (err error) {
 		proc.write(record, dirTitle+"/"+record.Language)
 	}
 	return nil
+}
+
+// inSplit reports whether the problem belongs to the selected split.
+// The split is derived from a hash of the problem ID, so it stays stable as problems are added.
+func (proc *Processor) inSplit(id int64) bool {
+	if proc.split == "" || proc.split == AllSplit {
+		return true
+	}
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(strconv.FormatInt(id, 10)))
+	isTest := int(h.Sum32()%percentBase) < proc.testPercent
+	return isTest == (proc.split == TestSplit)
 }
 
 func (proc *Processor) write(record any, label string) {

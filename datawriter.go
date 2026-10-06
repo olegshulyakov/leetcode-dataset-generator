@@ -22,6 +22,10 @@ const (
 	SolutionsLayout = "solutions"
 	ProblemsLayout  = "problems"
 
+	AllSplit   = "all"
+	TrainSplit = "train"
+	TestSplit  = "test"
+
 	defaultParallelNumber = 4
 )
 
