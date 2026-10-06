@@ -18,31 +18,42 @@ var (
 
 func main() {
 	flag.Parse()
-	if err := validateFlags(); err != nil {
-		log.Fatalf("Invalid arguments: %v", err)
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() (err error) {
+	if err = validateFlags(); err != nil {
+		return fmt.Errorf("invalid arguments: %w", err)
 	}
 
 	f, err := outputFile()
 	if err != nil {
-		log.Fatalf("Failed to create output file: %v", err)
+		return fmt.Errorf("failed to create output file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close output file: %w", closeErr)
+		}
+	}()
 
 	writer, err := NewDataWriter(*outputFormat, f)
 	if err != nil {
-		log.Printf("Failed to create writer: %v", err)
-		return
+		return fmt.Errorf("failed to create writer: %w", err)
 	}
-	defer (*writer).Stop()
 
 	processor := &Processor{
 		root:   filepath.Join(*repoPath, "solution"),
 		writer: writer,
 	}
-	err = processor.Process()
-	if err != nil {
-		log.Printf("Error walking directory: %v", err)
+	processErr := processor.Process()
+
+	if err = (*writer).Stop(); err != nil {
+		return fmt.Errorf("failed to finalize output: %w", err)
 	}
+
+	return processErr
 }
 
 func validateFlags() error {

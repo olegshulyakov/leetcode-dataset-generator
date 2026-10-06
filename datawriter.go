@@ -34,7 +34,7 @@ type Record struct {
 
 type DataWriter interface {
 	WriteRecord(Record) error
-	Stop()
+	Stop() error
 }
 
 type ParquetWriter struct {
@@ -45,10 +45,8 @@ func (w *ParquetWriter) WriteRecord(r Record) error {
 	return w.pw.Write(r)
 }
 
-func (w *ParquetWriter) Stop() {
-	if err := w.pw.WriteStop(); err != nil {
-		log.Printf("Error during parquet writer stop: %v", err)
-	}
+func (w *ParquetWriter) Stop() error {
+	return w.pw.WriteStop()
 }
 
 type CSVWriter struct {
@@ -68,8 +66,9 @@ func (w *CSVWriter) WriteRecord(r Record) error {
 	})
 }
 
-func (w *CSVWriter) Stop() {
+func (w *CSVWriter) Stop() error {
 	w.cw.Flush()
+	return w.cw.Error()
 }
 
 type JSONWriter struct {
@@ -81,7 +80,9 @@ func (w *JSONWriter) WriteRecord(r Record) error {
 	return w.encoder.Encode(r)
 }
 
-func (w *JSONWriter) Stop() {}
+func (w *JSONWriter) Stop() error {
+	return nil
+}
 
 func NewDataWriter(format string, f *os.File) (*DataWriter, error) {
 	var out DataWriter

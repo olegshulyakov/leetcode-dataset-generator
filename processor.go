@@ -49,17 +49,28 @@ type Metadata struct {
 
 var solutionFileRegex = regexp.MustCompile(`^Solution(\d*)\.\w+$`)
 
+var errNoSolutions = errors.New("no solution files found")
+
 type Processor struct {
-	root      string
-	writer    *DataWriter
-	processed int
-	failed    int
+	root        string
+	writer      *DataWriter
+	processed   int
+	failed      int
+	skipped     int
+	writeErrors int
 }
 
 func (proc *Processor) Process() error {
 	err := filepath.WalkDir(proc.root, proc.walkDir)
-	log.Printf("Processing complete. Processed: %d, Failed: %d", proc.processed, proc.failed)
-	return err
+	log.Printf("Processing complete. Processed: %d, Failed: %d, Skipped (no solutions): %d, Write errors: %d",
+		proc.processed, proc.failed, proc.skipped, proc.writeErrors)
+	if err != nil {
+		return fmt.Errorf("error walking directory: %w", err)
+	}
+	if proc.writeErrors > 0 {
+		return fmt.Errorf("failed to write %d records", proc.writeErrors)
+	}
+	return nil
 }
 
 func (proc *Processor) walkDir(path string, d fs.DirEntry, err error) error {
@@ -70,7 +81,9 @@ func (proc *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 	if !d.IsDir() && path != filepath.Join(proc.root, metadataFile) && filepath.Base(path) == metadataFile {
 		dir := filepath.Dir(path)
 		err = proc.processDir(dir)
-		if err != nil {
+		if errors.Is(err, errNoSolutions) {
+			proc.skipped++
+		} else if err != nil {
 			proc.failed++
 			log.Printf("Error processing %s: %v", filepath.Base(dir), err)
 		}
@@ -145,12 +158,13 @@ func (proc *Processor) processDir(dir string) (err error) {
 		}
 
 		if err = (*proc.writer).WriteRecord(record); err != nil {
-			log.Printf("Error writing record: %v", err)
+			proc.writeErrors++
+			log.Printf("Error writing record %s/%s: %v", dirTitle, fileName, err)
 		}
 	}
 
 	if solutionsFound == 0 {
-		return errors.New("no solution files found")
+		return errNoSolutions
 	}
 
 	return nil
