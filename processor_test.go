@@ -117,13 +117,13 @@ func runFixture(t *testing.T, format string) (*Processor, string) {
 		t.Fatal(err)
 	}
 	proc := &Processor{root: fixtureRoot, writer: writer}
-	if err := proc.Process(); err != nil {
+	if err = proc.Process(); err != nil {
 		t.Fatal(err)
 	}
-	if err := (*writer).Stop(); err != nil {
+	if err = (*writer).Stop(); err != nil {
 		t.Fatal(err)
 	}
-	if err := f.Close(); err != nil {
+	if err = f.Close(); err != nil {
 		t.Fatal(err)
 	}
 	return proc, path
@@ -147,7 +147,7 @@ func TestProcessJSON(t *testing.T) {
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
 		var r Record
-		if err := json.Unmarshal(scanner.Bytes(), &r); err != nil {
+		if err = json.Unmarshal(scanner.Bytes(), &r); err != nil {
 			t.Fatal(err)
 		}
 		records[fmt.Sprintf("%s/%s/%d", r.Slug, r.Language, r.Approach)] = r
@@ -163,7 +163,7 @@ func TestProcessJSON(t *testing.T) {
 	if py1 := records["two-sum/Python/1"]; py1.Name != "Hash Table" || *py1.Rating != 1234 {
 		t.Errorf("unexpected Solution.py record: %+v", py1)
 	}
-	if _, ok := records["two-sum/Go/1"]; !ok {
+	if _, found := records["two-sum/Go/1"]; !found {
 		t.Error("missing Solution.go record")
 	}
 	unknown := records["unknown-language/Python/1"]
@@ -212,7 +212,7 @@ func TestProcessParquet(t *testing.T) {
 		t.Fatalf("got %d rows, want 4", n)
 	}
 	rows := make([]Record, 4)
-	if err := pr.Read(&rows); err != nil {
+	if err = pr.Read(&rows); err != nil {
 		t.Fatal(err)
 	}
 	for _, r := range rows {

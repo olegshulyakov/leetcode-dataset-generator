@@ -152,70 +152,27 @@ func (proc *Processor) processDir(dir string) (err error) {
 		tags = []string{}
 	}
 
+	problem := Record{
+		ID:          id,
+		Title:       title,
+		Slug:        metadata.Slug,
+		URL:         metadata.URL,
+		Difficulty:  metadata.Difficulty,
+		Rating:      metadata.Rating,
+		Source:      metadata.Source,
+		Description: description,
+		Tags:        tags,
+	}
+
 	solutionsFound := 0
 	for _, file := range files {
-		fileName := file.Name()
-		matches := solutionFileRegex.FindStringSubmatch(fileName)
+		matches := solutionFileRegex.FindStringSubmatch(file.Name())
 		if file.IsDir() || matches == nil {
 			continue
 		}
 
-		approach := int64(1)
-		if matches[1] != "" {
-			approach, err = strconv.ParseInt(matches[1], 10, 0)
-			if err != nil {
-				proc.badFiles++
-				log.Printf("Invalid approach number in %s/%s: %v", dirTitle, fileName, err)
-				continue
-			}
-		}
-
 		solutionsFound++
-		ext := filepath.Ext(fileName)
-		lang, ok := extensionToLanguage[ext]
-		if !ok {
-			proc.badFiles++
-			log.Printf("Unknown language for solution file %s/%s: %s", dirTitle, fileName, ext)
-			continue
-		}
-
-		var content []byte
-		content, err = os.ReadFile(filepath.Join(dir, fileName))
-		if err != nil {
-			proc.badFiles++
-			log.Printf("Error reading solution file %s: %v", fileName, err)
-			continue
-		}
-
-		var info Approach
-		if approach <= int64(len(approaches)) {
-			info = approaches[approach-1]
-		}
-
-		record := Record{
-			ID:          id,
-			Title:       title,
-			Slug:        metadata.Slug,
-			URL:         metadata.URL,
-			Difficulty:  metadata.Difficulty,
-			Rating:      metadata.Rating,
-			Source:      metadata.Source,
-			Description: description,
-			Tags:        tags,
-			Language:    lang,
-			Approach:    approach,
-			Name:        info.Name,
-			Thinking:    info.Thinking,
-			Explanation: info.Explanation,
-			Solution:    string(content),
-		}
-
-		if err = (*proc.writer).WriteRecord(record); err != nil {
-			proc.writeErrors++
-			log.Printf("Error writing record %s/%s: %v", dirTitle, fileName, err)
-		} else {
-			proc.records++
-		}
+		proc.processSolution(dir, file.Name(), matches[1], problem, approaches)
 	}
 
 	if solutionsFound == 0 {
@@ -223,6 +180,61 @@ func (proc *Processor) processDir(dir string) (err error) {
 	}
 
 	return nil
+}
+
+// processSolution writes one solution file as a record; problem holds the problem-level fields.
+func (proc *Processor) processSolution(
+	dir, fileName, approachNumber string,
+	problem Record,
+	approaches []Approach,
+) {
+	dirTitle := filepath.Base(dir)
+
+	approach := int64(1)
+	if approachNumber != "" {
+		var err error
+		approach, err = strconv.ParseInt(approachNumber, 10, 0)
+		if err != nil {
+			proc.badFiles++
+			log.Printf("Invalid approach number in %s/%s: %v", dirTitle, fileName, err)
+			return
+		}
+	}
+
+	ext := filepath.Ext(fileName)
+	lang, ok := extensionToLanguage[ext]
+	if !ok {
+		proc.badFiles++
+		log.Printf("Unknown language for solution file %s/%s: %s", dirTitle, fileName, ext)
+		return
+	}
+
+	content, err := os.ReadFile(filepath.Join(dir, fileName))
+	if err != nil {
+		proc.badFiles++
+		log.Printf("Error reading solution file %s/%s: %v", dirTitle, fileName, err)
+		return
+	}
+
+	var info Approach
+	if approach <= int64(len(approaches)) {
+		info = approaches[approach-1]
+	}
+
+	record := problem
+	record.Language = lang
+	record.Approach = approach
+	record.Name = info.Name
+	record.Thinking = info.Thinking
+	record.Explanation = info.Explanation
+	record.Solution = string(content)
+
+	if err = (*proc.writer).WriteRecord(record); err != nil {
+		proc.writeErrors++
+		log.Printf("Error writing record %s/%s: %v", dirTitle, fileName, err)
+		return
+	}
+	proc.records++
 }
 
 func (proc *Processor) parseDir(dirTitle string) (id int64, title string, err error) {
