@@ -38,6 +38,7 @@ Each row is one solution file: a problem in one language for one approach.
 | `rating`        | `int64`        | Contest rating; null when the problem has none               | `1249`                            |
 | `source`        | `string`       | Contest source; may be empty                                 | "Weekly Contest 379 Q1"           |
 | `description`   | `string`       | Problem description as HTML                                  | "<p>Given an array of integers…"  |
+| `description_zh` | `string`     | Chinese problem description as HTML; empty in this release   | ""                                |
 | `tags`          | `list<string>` | Problem tags                                                 | ["Array", "Hash Table"]           |
 | `language`      | `string`       | Programming language of the solution                         | "Python", "Java", "C++"           |
 | `approach`      | `int64`        | Approach number within the problem                           | `1`, `2`                          |
