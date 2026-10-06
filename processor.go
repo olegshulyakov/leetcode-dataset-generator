@@ -44,7 +44,8 @@ const (
 	descEnd      = "<!-- description:end -->"
 	tabsStart    = "<!-- tabs:start -->"
 
-	percentBase = 100
+	percentBase      = 100
+	progressInterval = 100
 )
 
 var (
@@ -70,9 +71,15 @@ type Metadata struct {
 	Slug       string   `yaml:"-"`
 }
 
-var solutionFileRegex = regexp.MustCompile(`^Solution(\d*)\.\w+$`)
+var (
+	solutionFileRegex = regexp.MustCompile(`^Solution(\d*)\.\w+$`)
+	problemDirRegex   = regexp.MustCompile(`^(\d+)\.(.+)$`)
+)
 
-var errNoSolutions = errors.New("no solution files found")
+var (
+	errNoSolutions = errors.New("no solution files found")
+	errNotInSplit  = errors.New("problem is not in the selected split")
+)
 
 type Processor struct {
 	root        string
@@ -81,7 +88,7 @@ type Processor struct {
 	testPercent int
 	includeZh   bool
 	descFormat  string
-	writer      *DataWriter
+	writer      DataWriter
 	processed   int
 	failed      int
 	skipped     int
@@ -123,16 +130,20 @@ func (proc *Processor) walkDir(path string, d fs.DirEntry, err error) error {
 	if !d.IsDir() && path != filepath.Join(proc.root, metadataFile) && filepath.Base(path) == metadataFile {
 		dir := filepath.Dir(path)
 		err = proc.processDir(dir)
-		if errors.Is(err, errNoSolutions) {
+		switch {
+		case errors.Is(err, errNotInSplit):
+			return nil
+		case errors.Is(err, errNoSolutions):
 			proc.skipped++
-		} else if err != nil {
+		case err != nil:
 			proc.failed++
 			log.Printf("Error processing %s: %v", filepath.Base(dir), err)
+		default:
+			proc.processed++
 		}
 
-		proc.processed++
-		if proc.processed%100 == 0 {
-			log.Printf("Processed %d directories...", proc.processed)
+		if total := proc.processed + proc.failed + proc.skipped; total%progressInterval == 0 {
+			log.Printf("Processed %d directories...", total)
 		}
 	}
 
@@ -146,7 +157,7 @@ func (proc *Processor) processDir(dir string) (err error) {
 		return err
 	}
 	if !proc.inSplit(id) {
-		return nil
+		return errNotInSplit
 	}
 
 	metadata, description, approaches, err := proc.parseMetadata(dir)
@@ -244,7 +255,7 @@ func (proc *Processor) newProblem(dir string, id int64, title string, metadata M
 }
 
 func (proc *Processor) write(record any, label string) {
-	if err := (*proc.writer).Write(record); err != nil {
+	if err := proc.writer.Write(record); err != nil {
 		proc.writeErrors++
 		log.Printf("Error writing record %s: %v", label, err)
 		return
@@ -330,8 +341,7 @@ func (proc *Processor) readSolution(
 }
 
 func (proc *Processor) parseDir(dirTitle string) (id int64, title string, err error) {
-	titleRegex := regexp.MustCompile(`^(\d+)\.(.+)$`)
-	if matches := titleRegex.FindStringSubmatch(dirTitle); matches != nil {
+	if matches := problemDirRegex.FindStringSubmatch(dirTitle); matches != nil {
 		title = matches[2]
 		idStr := matches[1]
 		id, err = strconv.ParseInt(idStr, 10, 0)

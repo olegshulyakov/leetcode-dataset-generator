@@ -131,7 +131,6 @@ func (w *CSVWriter) Stop() error {
 }
 
 type JSONWriter struct {
-	file    *os.File
 	encoder *json.Encoder
 }
 
@@ -143,7 +142,7 @@ func (w *JSONWriter) Stop() error {
 	return nil
 }
 
-func NewDataWriter(format, layout string, f *os.File) (*DataWriter, error) {
+func NewDataWriter(format, layout string, f *os.File) (DataWriter, error) {
 	var schema any = new(Record)
 	if layout == ProblemsLayout {
 		schema = new(ProblemRecord)
@@ -188,14 +187,11 @@ func NewDataWriter(format, layout string, f *os.File) (*DataWriter, error) {
 		}
 		out = &CSVWriter{cw: cw}
 	case JSON:
-		out = &JSONWriter{
-			file:    f,
-			encoder: json.NewEncoder(f),
-		}
+		out = &JSONWriter{encoder: json.NewEncoder(f)}
 	default:
 		log.Printf("Unsupported format: %s", format)
 		return nil, errors.New("unsupported format")
 	}
 
-	return &out, nil
+	return out, nil
 }

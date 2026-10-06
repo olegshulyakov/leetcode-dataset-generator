@@ -121,7 +121,7 @@ func runFixture(t *testing.T, format, layout string) (*Processor, string) {
 	if err = proc.Process(); err != nil {
 		t.Fatal(err)
 	}
-	if err = (*writer).Stop(); err != nil {
+	if err = writer.Stop(); err != nil {
 		t.Fatal(err)
 	}
 	if err = f.Close(); err != nil {
@@ -133,9 +133,9 @@ func runFixture(t *testing.T, format, layout string) (*Processor, string) {
 func TestProcessJSON(t *testing.T) {
 	proc, path := runFixture(t, JSON, SolutionsLayout)
 
-	if proc.records != 4 || proc.failed != 1 || proc.skipped != 1 || proc.badFiles != 1 {
-		t.Errorf("records=%d failed=%d skipped=%d badFiles=%d; want 4, 1, 1, 1",
-			proc.records, proc.failed, proc.skipped, proc.badFiles)
+	if proc.records != 4 || proc.processed != 2 || proc.failed != 1 || proc.skipped != 1 || proc.badFiles != 1 {
+		t.Errorf("records=%d processed=%d failed=%d skipped=%d badFiles=%d; want 4, 2, 1, 1, 1",
+			proc.records, proc.processed, proc.failed, proc.skipped, proc.badFiles)
 	}
 
 	f, err := os.Open(path)

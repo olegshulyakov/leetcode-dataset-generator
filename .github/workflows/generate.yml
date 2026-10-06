@@ -9,7 +9,7 @@ jobs:
   generate-dataset:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
 
     steps:
       - name: Checkout generator repository

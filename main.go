@@ -61,7 +61,7 @@ func run() (err error) {
 	}
 	processErr := processor.Process()
 
-	if err = (*writer).Stop(); err != nil {
+	if err = writer.Stop(); err != nil {
 		return fmt.Errorf("failed to finalize output: %w", err)
 	}
 
@@ -115,18 +115,6 @@ func validateFlags() error {
 }
 
 func outputFile() (*os.File, error) {
-	extension := PARQUET
-	switch strings.ToLower(*outputFormat) {
-	case CSV:
-		extension = CSV
-	case JSON:
-		extension = JSON
-	case PARQUET:
-		extension = PARQUET
-	default:
-		log.Fatalf("Unsupported format: %s", *outputFormat)
-	}
-
-	outputFile := *outputName + "." + extension
-	return os.Create(outputFile)
+	// validateFlags has already checked the format, which doubles as the file extension.
+	return os.Create(*outputName + "." + strings.ToLower(*outputFormat))
 }
