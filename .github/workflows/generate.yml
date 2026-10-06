@@ -50,7 +50,13 @@ jobs:
           cache: 'pip'
 
       - name: Install to Hugging Face CLI
-        run: pip install huggingface_hub[cli]
+        run: pip install huggingface_hub
+
+      - name: Prepare upload folder
+        run: |
+          mkdir -p upload/default/train
+          cp generator/dataset/README.md upload/README.md
+          cp leetcode-solutions.parquet upload/default/train/0000.parquet
 
       - name: Upload Dataset to Hugging Face
-        run: hf upload --repo-type dataset --commit-message "${{ steps.commit-msg.outputs.msg }}" --token "${{ secrets.HF_TOKEN }}" "${{ secrets.HF_REPO_ID }}" "leetcode-solutions.parquet" "/default/train/0000.parquet"
+        run: hf upload --repo-type dataset --commit-message "${{ steps.commit-msg.outputs.msg }}" --token "${{ secrets.HF_TOKEN }}" "${{ secrets.HF_REPO_ID }}" upload .
