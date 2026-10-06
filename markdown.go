@@ -2,6 +2,7 @@ package main
 
 import (
 	"regexp"
+	"strings"
 
 	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
@@ -20,6 +21,9 @@ var (
 	subRegex    = regexp.MustCompile(`(?s)<sub>(.*?)</sub>`)
 	simpleRegex = regexp.MustCompile(`^\w+$`)
 
+	// Non-breaking spaces would otherwise survive as U+00A0, including empty "&nbsp;" paragraphs.
+	nbspReplacer = strings.NewReplacer("&nbsp;", " ", "&#160;", " ", "\u00a0", " ")
+
 	markdownConverter = converter.NewConverter(converter.WithPlugins(
 		base.NewBasePlugin(),
 		commonmark.NewCommonmarkPlugin(),
@@ -31,6 +35,7 @@ var (
 // Superscripts and subscripts become ^x and _x (parenthesized when complex),
 // since Markdown has no syntax for them and they often appear inside code spans.
 func htmlToMarkdown(html string) (string, error) {
+	html = nbspReplacer.Replace(html)
 	html = supRegex.ReplaceAllStringFunc(html, func(s string) string {
 		return scriptNotation("^", supRegex.FindStringSubmatch(s)[1])
 	})
