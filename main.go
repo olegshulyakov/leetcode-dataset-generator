@@ -18,6 +18,7 @@ var (
 	minRecords   = flag.Int("min-records", 0, "Fail if fewer records are written")
 	split        = flag.String("split", AllSplit, "Problems to include: all, train, or test")
 	testPercent  = flag.Int("test-percent", 5, "Percentage of problems assigned to the test split")
+	descFormat   = flag.String("description-format", HTMLFormat, "Description format: html or markdown")
 	includeZh    = flag.Bool("include-zh", false, "Fill description_zh with the Chinese problem description")
 	maxFailures  = flag.Int("max-failures", -1, "Fail if more problems or solution files fail to parse (-1 disables)")
 )
@@ -55,6 +56,7 @@ func run() (err error) {
 		split:       *split,
 		testPercent: *testPercent,
 		includeZh:   *includeZh,
+		descFormat:  *descFormat,
 		writer:      writer,
 	}
 	processErr := processor.Process()
@@ -95,6 +97,10 @@ func validateFlags() error {
 
 	if *split != AllSplit && *split != TrainSplit && *split != TestSplit {
 		return fmt.Errorf("unsupported split: %s", *split)
+	}
+
+	if *descFormat != HTMLFormat && *descFormat != MarkdownFormat {
+		return fmt.Errorf("unsupported description format: %s", *descFormat)
 	}
 
 	if *testPercent < 0 || *testPercent > percentBase {

@@ -80,6 +80,7 @@ type Processor struct {
 	split       string
 	testPercent int
 	includeZh   bool
+	descFormat  string
 	writer      *DataWriter
 	processed   int
 	failed      int
@@ -158,25 +159,9 @@ func (proc *Processor) processDir(dir string) (err error) {
 		return fmt.Errorf("error reading directory: %w", err)
 	}
 
-	tags := metadata.Tags
-	if tags == nil {
-		tags = []string{}
-	}
-
-	problem := Record{
-		ID:          id,
-		Title:       title,
-		Slug:        metadata.Slug,
-		URL:         metadata.URL,
-		Difficulty:  metadata.Difficulty,
-		Rating:      metadata.Rating,
-		Source:      metadata.Source,
-		Description: description,
-		Tags:        tags,
-	}
-
-	if proc.includeZh {
-		problem.DescriptionZh = parseDescriptionZh(dir)
+	problem, err := proc.newProblem(dir, id, title, metadata, description)
+	if err != nil {
+		return err
 	}
 
 	solutionsFound := 0
@@ -220,6 +205,42 @@ func (proc *Processor) inSplit(id int64) bool {
 	_, _ = h.Write([]byte(strconv.FormatInt(id, 10)))
 	isTest := int(h.Sum32()%percentBase) < proc.testPercent
 	return isTest == (proc.split == TestSplit)
+}
+
+// newProblem builds the problem-level fields shared by all solution records of a problem.
+func (proc *Processor) newProblem(dir string, id int64, title string, metadata Metadata, description string) (Record, error) {
+	tags := metadata.Tags
+	if tags == nil {
+		tags = []string{}
+	}
+
+	problem := Record{
+		ID:          id,
+		Title:       title,
+		Slug:        metadata.Slug,
+		URL:         metadata.URL,
+		Difficulty:  metadata.Difficulty,
+		Rating:      metadata.Rating,
+		Source:      metadata.Source,
+		Description: description,
+		Tags:        tags,
+	}
+
+	if proc.includeZh {
+		problem.DescriptionZh = parseDescriptionZh(dir)
+	}
+
+	if proc.descFormat == MarkdownFormat {
+		var err error
+		if problem.Description, err = htmlToMarkdown(problem.Description); err != nil {
+			return problem, fmt.Errorf("failed to convert description to markdown: %w", err)
+		}
+		if problem.DescriptionZh, err = htmlToMarkdown(problem.DescriptionZh); err != nil {
+			return problem, fmt.Errorf("failed to convert Chinese description to markdown: %w", err)
+		}
+	}
+
+	return problem, nil
 }
 
 func (proc *Processor) write(record any, label string) {

@@ -351,3 +351,21 @@ func TestInSplit(t *testing.T) {
 		t.Errorf("test split has %d of 10000 problems, want about 500", testCount)
 	}
 }
+
+func TestHTMLToMarkdown(t *testing.T) {
+	tests := map[string]string{
+		"<p>Use <code>nums</code>.</p>":                   "Use `nums`.",
+		"<code>1 &lt;= n &lt;= 10<sup>4</sup></code>":     "`1 <= n <= 10^4`",
+		"<p>2<sup>n-1</sup> and x<sub>i</sub></p>":        "2^(n-1) and x\\_i",
+		"<p><strong>Example:</strong></p><pre>a\nb</pre>": "**Example:**\n\n```\na\nb\n```",
+	}
+	for html, want := range tests {
+		got, err := htmlToMarkdown(html)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Errorf("htmlToMarkdown(%q) = %q, want %q", html, got, want)
+		}
+	}
+}
