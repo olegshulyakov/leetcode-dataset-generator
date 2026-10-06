@@ -1,6 +1,6 @@
 # LeetCode Solutions Dataset Generator
 
-![Go Version](https://img.shields.io/badge/go-1.18%2B-blue)
+![Go Version](https://img.shields.io/badge/go-1.26%2B-blue)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A command-line tool to generate Hugging Face datasets from [Doocs LeetCode](https://github.com/doocs/leetcode) solutions repository. Creates structured datasets for fine-tuning large language models with LeetCode problems and solutions.
@@ -17,7 +17,7 @@ A command-line tool to generate Hugging Face datasets from [Doocs LeetCode](http
 
 ### Prerequisites
 
-- Go 1.18 or higher
+- Go 1.26 or higher
 - Git (to clone the repository)
 
 ### Build from Source

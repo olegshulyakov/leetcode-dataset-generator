@@ -13,13 +13,13 @@ jobs:
 
     steps:
       - name: Checkout generator repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: olegshulyakov/leetcode-dataset-generator
           path: generator
 
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v7
         with:
           go-version: "stable"
           cache-dependency-path: generator/go.sum
@@ -30,7 +30,7 @@ jobs:
           go build -o leetcode-dataset
 
       - name: Checkout LeetCode repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: doocs/leetcode
           path: leetcode-repo
@@ -44,9 +44,9 @@ jobs:
         run: echo "msg=$(date +'Update %Y-%m-%d')" >> $GITHUB_OUTPUT
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
-          python-version: "3.13.0"
+          python-version: "3.13"
           cache: 'pip'
 
       - name: Install to Hugging Face CLI
