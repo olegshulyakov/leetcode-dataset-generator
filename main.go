@@ -15,6 +15,7 @@ var (
 	outputFormat = flag.String("convert", PARQUET, "Output format: parquet, csv, or json")
 	outputName   = flag.String("output", "leetcode-solutions", "Base output filename")
 	minRecords   = flag.Int("min-records", 0, "Fail if fewer records are written")
+	includeZh    = flag.Bool("include-zh", false, "Fill description_zh with the Chinese problem description")
 	maxFailures  = flag.Int("max-failures", -1, "Fail if more problems or solution files fail to parse (-1 disables)")
 )
 
@@ -46,8 +47,9 @@ func run() (err error) {
 	}
 
 	processor := &Processor{
-		root:   filepath.Join(*repoPath, "solution"),
-		writer: writer,
+		root:      filepath.Join(*repoPath, "solution"),
+		includeZh: *includeZh,
+		writer:    writer,
 	}
 	processErr := processor.Process()
 

@@ -38,6 +38,7 @@ var extensionToLanguage = map[string]string{
 
 const (
 	metadataFile = "README_EN.md"
+	zhReadmeFile = "README.md"
 	descStart    = "<!-- description:start -->"
 	descEnd      = "<!-- description:end -->"
 	tabsStart    = "<!-- tabs:start -->"
@@ -72,6 +73,7 @@ var errNoSolutions = errors.New("no solution files found")
 
 type Processor struct {
 	root        string
+	includeZh   bool
 	writer      *DataWriter
 	processed   int
 	failed      int
@@ -162,6 +164,10 @@ func (proc *Processor) processDir(dir string) (err error) {
 		Source:      metadata.Source,
 		Description: description,
 		Tags:        tags,
+	}
+
+	if proc.includeZh {
+		problem.DescriptionZh = parseDescriptionZh(dir)
 	}
 
 	solutionsFound := 0
@@ -294,28 +300,39 @@ func (proc *Processor) parseMetadata(dir string) (metadata Metadata, description
 		metadata.Slug = matches[2]
 	}
 
-	descStartIndex := -1
-	descEndIndex := -1
-
-	for i, line := range lines[yamlEndIndex+1:] {
-		if strings.Contains(line, descStart) {
-			descStartIndex = yamlEndIndex + 1 + i
-		}
-		if strings.Contains(line, descEnd) {
-			descEndIndex = yamlEndIndex + 1 + i
-			break
-		}
-	}
-
-	if descStartIndex == -1 || descEndIndex == -1 {
+	description, found := extractDescription(lines[yamlEndIndex+1:])
+	if !found {
 		return metadata, "", nil, errors.New("description markers not found")
 	}
 
-	descriptionLines := lines[descStartIndex+1 : descEndIndex]
-	description = strings.Join(descriptionLines, "\n")
-	description = strings.TrimSpace(description)
-
 	return metadata, description, parseApproaches(content), nil
+}
+
+// extractDescription returns the text between the description markers.
+func extractDescription(lines []string) (string, bool) {
+	startIndex := -1
+	for i, line := range lines {
+		if strings.Contains(line, descStart) {
+			startIndex = i
+		}
+		if strings.Contains(line, descEnd) {
+			if startIndex == -1 {
+				return "", false
+			}
+			return strings.TrimSpace(strings.Join(lines[startIndex+1:i], "\n")), true
+		}
+	}
+	return "", false
+}
+
+// parseDescriptionZh returns the Chinese description from README.md, or "" when it is unavailable.
+func parseDescriptionZh(dir string) string {
+	readme, err := os.ReadFile(filepath.Join(dir, zhReadmeFile))
+	if err != nil {
+		return ""
+	}
+	description, _ := extractDescription(strings.Split(string(readme), "\n"))
+	return description
 }
 
 // parseApproaches extracts the approach sections in order; section N describes Solution{N}.* files.

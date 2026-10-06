@@ -57,6 +57,7 @@ Options:
   --output string    Base output filename (default "leetcode-solutions")
   --min-records int  Fail if fewer records are written (default 0)
   --max-failures int Fail if more problems or solution files fail to parse (default -1, disabled)
+  --include-zh       Fill description_zh with the Chinese problem description
   -h, --help         Display help information
 ```
 
@@ -87,6 +88,7 @@ Each row is one solution file: a problem in one language for one approach.
 | `rating`        | int    | Contest rating; null when the problem has none                          |
 | `source`        | string | Contest source (e.g., "Weekly Contest 379 Q1"); may be empty            |
 | `description`   | string | Problem description as HTML                                             |
+| `description_zh` | string | Chinese problem description as HTML; empty unless `--include-zh`        |
 | `tags`          | list   | Problem tags (e.g., ["Array", "Hash Table"]); `; `-joined string in CSV |
 | `language`      | string | Programming language of the solution                                    |
 | `approach`      | int    | Approach number (`Solution.py` → 1, `Solution2.py` → 2)                 |
