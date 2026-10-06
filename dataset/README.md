@@ -28,7 +28,7 @@ configs:
 
 LeetCode problems with solutions in many programming languages, built from the [Doocs LeetCode](https://github.com/doocs/leetcode) repository. Each solution comes with the approach name, the reasoning that leads to it, and an explanation with complexity analysis. The dataset is meant for fine-tuning and evaluating code generation models.
 
-The dataset is regenerated weekly from the latest Doocs commit by the [leetcode-dataset-generator](https://github.com/olegshulyakov/leetcode-dataset-generator) tool.
+The dataset is regenerated monthly from the latest Doocs commit by the [leetcode-dataset-generator](https://github.com/olegshulyakov/leetcode-dataset-generator) tool.
 
 ## Structure
 

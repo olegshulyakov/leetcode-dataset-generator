@@ -2,7 +2,7 @@ name: Generate and Upload LeetCode Dataset
 
 on:
   schedule:
-    - cron: "0 0 * * 0" # Runs at 00:00 UTC every Sunday
+    - cron: "37 4 2 * *" # 04:37 UTC on the 2nd of every month; off the hour to avoid peak-load delays
   workflow_dispatch: # Allows manual triggering
 
 jobs:
