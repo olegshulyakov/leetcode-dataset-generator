@@ -123,6 +123,71 @@ The tool detects the programming language from the solution file extension:
 
 Files with other extensions are skipped and counted as failures (see `--max-failures`).
 
+## Preparing Data for LoRA/QLoRA Fine-Tuning
+
+The published dataset, [olegshulyakov/doocs-leetcode-solutions](https://huggingface.co/datasets/olegshulyakov/doocs-leetcode-solutions), is raw data: one row per solution, with Markdown descriptions and `train`/`test` splits by problem. Turn it into chat examples for your model before fine-tuning:
+
+- Use the prompt-completion format, so the loss covers only the answer and not the problem statement.
+- Put the reasoning first: `thinking`, then `explanation`, then the code in a fenced block.
+- Keep only the languages you target, and limit approaches per problem so popular problems do not dominate.
+- Drop examples longer than your context budget instead of truncating them; truncation cuts off the code.
+- Vary the prompt wording, and pick the template by problem `id` so runs are reproducible.
+
+```bash
+pip install datasets transformers jinja2
+```
+
+````python
+from datasets import load_dataset
+from transformers import AutoTokenizer
+
+DATASET = "olegshulyakov/doocs-leetcode-solutions"
+MODEL = "Qwen/Qwen2.5-Coder-7B-Instruct"  # tokenizer of the model you fine-tune
+LANGUAGES = {"Python": "python", "C++": "cpp", "Java": "java"}  # language -> code fence tag
+MAX_APPROACHES = 2  # keep at most this many approaches per problem and language
+MAX_TOKENS = 4096  # drop longer examples instead of truncating the code
+INCLUDE_THINKING = True
+
+SYSTEM = "You are an expert competitive programmer. Reason about the problem first, then write a correct, efficient solution."
+PROMPTS = [
+    "{description}\n\nSolve this problem in {language}.",
+    "Write a {language} solution for the following problem:\n\n{description}",
+    "{description}\n\nExplain your approach and implement it in {language}.",
+]
+
+tokenizer = AutoTokenizer.from_pretrained(MODEL)
+
+
+def to_sft(row):
+    parts = [row["thinking"]] if INCLUDE_THINKING and row["thinking"] else []
+    if row["explanation"]:
+        parts.append(row["explanation"])
+    parts.append(f"```{LANGUAGES[row['language']]}\n{row['solution'].strip()}\n```")
+
+    # Pick the prompt template by problem id so the choice is stable between runs.
+    prompt = PROMPTS[row["id"] % len(PROMPTS)].format(description=row["description"], language=row["language"])
+    return {
+        "prompt": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": prompt}],
+        "completion": [{"role": "assistant", "content": "\n\n".join(parts)}],
+    }
+
+
+def fits(example):
+    text = tokenizer.apply_chat_template(example["prompt"] + example["completion"], tokenize=False)
+    return len(tokenizer(text)["input_ids"]) <= MAX_TOKENS
+
+
+dataset = load_dataset(DATASET)  # train and test splits, split by problem
+dataset = dataset.filter(lambda r: r["language"] in LANGUAGES and r["approach"] <= MAX_APPROACHES)
+dataset = dataset.map(to_sft, remove_columns=dataset["train"].column_names)
+dataset = dataset.filter(fits)
+
+print(dataset)
+dataset.save_to_disk("leetcode-sft")  # or pass dataset["train"] / dataset["test"] to TRL SFTTrainer
+````
+
+The result plugs into TRL's `SFTTrainer` with a `peft_config`. For prompt-completion datasets, the loss is computed on the completion only by default. The dataset is CC-BY-SA-4.0, so credit Doocs when you publish a model or adapter trained on it.
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
